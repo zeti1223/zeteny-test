@@ -109,16 +109,11 @@
                     const li = document.createElement("li");
                     li.innerHTML = `
               <a href="${url}" target="_blank">${title}</a>
-              <button class="delete-btn" onclick="deleteFavorite('${id}')">❌</button>
             `;
                     favoritesList.appendChild(li);
                 });
             }
         });
-    }
-
-    function deleteFavorite(id) {
-        dbRef.child(id).remove();
     }
 
     loadFavorites();
