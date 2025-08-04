@@ -75,6 +75,22 @@
             padding: 0.25rem 0.5rem;
             cursor: pointer;
         }
+
+        /* Fade-in animáció új elemekhez */
+        .fade-in {
+            animation: fadeIn 0.6s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+
+        /* Hover animáció a listán */
+        li:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px) scale(1.03);
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
     </style>
 </head>
 <body>
@@ -133,9 +149,10 @@
             if (data) {
                 Object.entries(data).forEach(([id, { title, url }]) => {
                     const li = document.createElement("li");
+                    li.classList.add("fade-in"); // animáció osztály hozzáadása
                     li.innerHTML = `
-              <a href="${url}" target="_blank">${title}</a>
-            `;
+                        <a href="${url}" target="_blank">${title}</a>
+                    `;
                     favoritesList.appendChild(li);
                 });
             }
