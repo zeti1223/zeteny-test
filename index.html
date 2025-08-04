@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Kedvenc Tutorial Oldalaim</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 2rem;
+            background-color: #f3f3f3;
+            color: #222;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        input, button {
+            padding: 0.5rem;
+            margin-right: 0.5rem;
+        }
+
+        ul {
+            margin-top: 1rem;
+            padding-left: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<h1>📚 Kedvenc Tutorial Oldalaim</h1>
+
+<input type="text" id="titleInput" placeholder="Oldal címe pl. CSS-trükkök">
+<input type="url" id="urlInput" placeholder="https://valami.hu">
+<button onclick="addFavorite()">➕ Hozzáadás</button>
+
+<ul id="favoritesList"></ul>
+
+<script>
+    const titleInput = document.getElementById('titleInput');
+    const urlInput = document.getElementById('urlInput');
+    const favoritesList = document.getElementById('favoritesList');
+
+    function loadFavorites() {
+        const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+        favoritesList.innerHTML = '';
+        favorites.forEach(({ title, url }, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<a href="${url}" target="_blank">${title}</a>
+          <button onclick="removeFavorite(${index})">❌</button>`;
+            favoritesList.appendChild(li);
+        });
+    }
+
+    function addFavorite() {
+        const title = titleInput.value.trim();
+        const url = urlInput.value.trim();
+        if (!title || !url) {
+            alert('Ne baszakodj, töltsd ki mindkét mezőt!');
+            return;
+        }
+
+        const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+        favorites.push({ title, url });
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+        titleInput.value = '';
+        urlInput.value = '';
+        loadFavorites();
+    }
+
+    function removeFavorite(index) {
+        const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+        favorites.splice(index, 1);
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+        loadFavorites();
+    }
+
+    loadFavorites();
+</script>
+</body>
+</html>
