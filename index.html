@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <title>Tutorials</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     <style>
         body {
             font-family: sans-serif;
+            background-color: #f0f0f0;
             padding: 2rem;
-            background-color: #f3f3f3;
-            color: #222;
         }
 
         h1 {
@@ -17,77 +18,111 @@
 
         input, button {
             padding: 0.5rem;
-            margin-right: 0.5rem;
+            margin: 0.25rem;
         }
 
         ul {
             margin-top: 1rem;
-            padding-left: 1rem;
+            list-style: none;
+            padding-left: 0;
         }
 
         li {
             margin-bottom: 0.5rem;
+            background-color: #fff;
+            padding: 0.5rem;
+            border-radius: 4px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
         }
 
         a {
             color: #3498db;
             text-decoration: none;
+            font-weight: bold;
         }
 
-        a:hover {
-            text-decoration: underline;
+        button.delete-btn {
+            margin-left: 1rem;
+            background: red;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-<h1>📚 Kedvenc Tutorial Oldalaim</h1>
 
-<input type="text" id="titleInput" placeholder="Oldal címe pl. CSS-trükkök">
+<h1>📚 Kedvenc Tutorial Oldalaim</h1>
+<input type="text" id="titleInput" placeholder="Cím pl. JS kezdőknek">
 <input type="url" id="urlInput" placeholder="https://valami.hu">
 <button onclick="addFavorite()">➕ Hozzáadás</button>
 
 <ul id="favoritesList"></ul>
 
 <script>
-    const titleInput = document.getElementById('titleInput');
-    const urlInput = document.getElementById('urlInput');
-    const favoritesList = document.getElementById('favoritesList');
+    // 🚨 CSERÉLD LE A SAJÁT CONFIGODRA!
+    const firebaseConfig = {
+        apiKey: "AIzaSyDn1OTmejSt3k705cFoNFVaN0lX-t0sxlo",
+        authDomain: "zeteny-test.firebaseapp.com",
+        databaseURL: "https://zeteny-test-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "zeteny-test",
+        storageBucket: "zeteny-test.firebasestorage.app",
+        messagingSenderId: "1048302485508",
+        appId: "1:1048302485508:web:15f9180a68b97faee97551",
+        measurementId: "G-E3H84LKM0D"
+    };
 
-    function loadFavorites() {
-        const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-        favoritesList.innerHTML = '';
-        favorites.forEach(({ title, url }, index) => {
-            const li = document.createElement('li');
-            li.innerHTML = `<a href="${url}" target="_blank">${title}</a>
-          <button onclick="removeFavorite(${index})">❌</button>`;
-            favoritesList.appendChild(li);
-        });
-    }
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const dbRef = db.ref("favorites");
+
+    const titleInput = document.getElementById("titleInput");
+    const urlInput = document.getElementById("urlInput");
+    const favoritesList = document.getElementById("favoritesList");
 
     function addFavorite() {
         const title = titleInput.value.trim();
         const url = urlInput.value.trim();
         if (!title || !url) {
-            alert('Ne baszakodj, töltsd ki mindkét mezőt!');
+            alert("Ne legyél már lusta, töltsd ki mindkettőt!");
             return;
         }
 
-        const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-        favorites.push({ title, url });
-        localStorage.setItem('favorites', JSON.stringify(favorites));
-        titleInput.value = '';
-        urlInput.value = '';
-        loadFavorites();
+        const newFavorite = {
+            title,
+            url,
+            timestamp: Date.now()
+        };
+
+        dbRef.push(newFavorite);
+        titleInput.value = "";
+        urlInput.value = "";
     }
 
-    function removeFavorite(index) {
-        const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-        favorites.splice(index, 1);
-        localStorage.setItem('favorites', JSON.stringify(favorites));
-        loadFavorites();
+    function loadFavorites() {
+        dbRef.on("value", (snapshot) => {
+            favoritesList.innerHTML = "";
+            const data = snapshot.val();
+            if (data) {
+                Object.entries(data).forEach(([id, { title, url }]) => {
+                    const li = document.createElement("li");
+                    li.innerHTML = `
+              <a href="${url}" target="_blank">${title}</a>
+              <button class="delete-btn" onclick="deleteFavorite('${id}')">❌</button>
+            `;
+                    favoritesList.appendChild(li);
+                });
+            }
+        });
+    }
+
+    function deleteFavorite(id) {
+        dbRef.child(id).remove();
     }
 
     loadFavorites();
 </script>
+
 </body>
 </html>
