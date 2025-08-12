@@ -967,6 +967,9 @@
         gameActive = true;
         winningCombo = null;
 
+        // Reset játékos kiemelések
+        resetPlayerHighlights();
+
         updateBoard();
         setupBoardEventListeners();
 
@@ -985,6 +988,9 @@
         gameActive = true;
         winningCombo = null;
 
+        // Reset játékos kiemelések
+        resetPlayerHighlights();
+
         document.getElementById('player-x').classList.add('active');
         document.getElementById('player-o').classList.remove('active');
 
@@ -992,6 +998,12 @@
         setupBoardEventListeners();
 
         showScreen(screens.gameScreen);
+    }
+
+    function resetPlayerHighlights() {
+        // Eltávolítjuk a nyertes kiemelést mindkét játékosról
+        document.getElementById('player-x').classList.remove('winner');
+        document.getElementById('player-o').classList.remove('winner');
     }
 
     function setupGameListeners() {
@@ -1356,37 +1368,36 @@
     }
 
     function restartGame() {
+        // Minden módban reseteljük a kiemeléseket
+        resetPlayerHighlights();
+        winningCombo = null;
+        boardState = ['', '', '', '', '', '', '', '', ''];
+        currentPlayer = 'X';
+        gameActive = true;
+
         if (gameMode === 'pvp') {
             // Firebase frissítése
             database.ref('games/' + currentGameId).update({
-                board: ['', '', '', '', '', '', '', '', ''],
+                board: boardState,
                 currentPlayer: 'X',
                 status: 'playing',
                 winner: null,
                 winningCombo: null
             });
-        } else {
-            // Bot elleni játék vagy helyi multiplayer újraindítása
-            boardState = ['', '', '', '', '', '', '', '', ''];
-            currentPlayer = 'X';
-            gameActive = true;
-            winningCombo = null;
-
-            document.getElementById('player-x').classList.remove('winner');
-            document.getElementById('player-o').classList.remove('winner');
-
-            if (gameMode === 'pvb') {
-                document.getElementById('game-status').textContent = 'A játék elindult! Te kezdesz (X).';
-                document.getElementById('player-x').classList.add('active');
-                document.getElementById('player-o').classList.remove('active');
-            } else if (gameMode === 'local') {
-                document.getElementById('game-status').textContent = 'A játék elindult! ' + player1Name + ' (X) kezd.';
-                document.getElementById('player-x').classList.add('active');
-                document.getElementById('player-o').classList.remove('active');
-            }
-
-            updateBoard();
+            document.getElementById('game-status').textContent = 'Játék újraindítva! Az X játékos kezd.';
         }
+        else if (gameMode === 'pvb') {
+            document.getElementById('game-status').textContent = 'A játék elindult! Te kezdesz (X).';
+            document.getElementById('player-x').classList.add('active');
+            document.getElementById('player-o').classList.remove('active');
+        }
+        else if (gameMode === 'local') {
+            document.getElementById('game-status').textContent = 'A játék elindult! ' + player1Name + ' (X) kezd.';
+            document.getElementById('player-x').classList.add('active');
+            document.getElementById('player-o').classList.remove('active');
+        }
+
+        updateBoard();
     }
 
     function leaveGame() {
@@ -1400,6 +1411,9 @@
         boardState = ['', '', '', '', '', '', '', '', ''];
         gameActive = false;
         winningCombo = null;
+
+        // Reset játékos kiemelések
+        resetPlayerHighlights();
 
         document.getElementById('game-id-container').style.display = 'flex';
 
