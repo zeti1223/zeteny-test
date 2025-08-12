@@ -223,6 +223,19 @@
             background-color: rgba(52, 199, 89, 0.15);
             border: 2px solid var(--win-color);
             animation: pulse 1.5s infinite;
+            position: relative;
+        }
+
+        .cell.win::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(52, 199, 89, 0.1);
+            z-index: -1;
+            border-radius: 14px;
         }
 
         @keyframes pulse {
@@ -526,15 +539,22 @@
                         <div class="mode-icon">
                             <i class="fas fa-users"></i>
                         </div>
-                        <div class="mode-title">Játékos vs Játékos</div>
-                        <div class="mode-desc">Online multiplayer játék</div>
+                        <div class="mode-title">Online Multiplayer</div>
+                        <div class="mode-desc">Játékos vs Játékos online</div>
                     </div>
                     <div class="mode-btn" data-mode="pvb">
                         <div class="mode-icon">
                             <i class="fas fa-robot"></i>
                         </div>
-                        <div class="mode-title">Játékos vs Bot</div>
+                        <div class="mode-title">Bot ellen</div>
                         <div class="mode-desc">Gépi ellenfél ellen</div>
+                    </div>
+                    <div class="mode-btn" data-mode="local">
+                        <div class="mode-icon">
+                            <i class="fas fa-hand-pointer"></i>
+                        </div>
+                        <div class="mode-title">Helyi Multiplayer</div>
+                        <div class="mode-desc">Két játékos egy készüléken</div>
                     </div>
                 </div>
             </div>
@@ -543,7 +563,7 @@
         <div id="pvp-screen" class="screen">
             <div class="card">
                 <div class="card-header">
-                    <div class="card-title">Multiplayer Játék</div>
+                    <div class="card-title">Online Multiplayer Játék</div>
                 </div>
                 <div class="card-body">
                     <button id="create-game-btn" class="btn">
@@ -577,6 +597,27 @@
                     </div>
 
                     <button id="start-bot-game" class="btn">
+                        <i class="fas fa-play"></i> Játék Indítása
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="local-screen" class="screen">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Helyi Multiplayer Játék</div>
+                </div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <label for="player1-name">1. Játékos neve (X)</label>
+                        <input type="text" id="player1-name" placeholder="1. játékos" value="Játékos 1">
+                    </div>
+                    <div class="input-group">
+                        <label for="player2-name">2. Játékos neve (O)</label>
+                        <input type="text" id="player2-name" placeholder="2. játékos" value="Játékos 2">
+                    </div>
+                    <button id="start-local-game" class="btn">
                         <i class="fas fa-play"></i> Játék Indítása
                     </button>
                 </div>
@@ -632,7 +673,7 @@
 
     <!-- Játék képernyő -->
     <div id="game-screen" class="screen">
-        <div class="game-id-display">
+        <div class="game-id-display" id="game-id-container">
             <div class="game-id-label">Szoba ID:</div>
             <div class="game-id" id="current-game-id">XXXXXX</div>
             <button class="copy-btn" id="copy-game-id">
@@ -707,8 +748,10 @@
     // Állapot változók
     let currentGameId = null;
     let playerName = "Játékos";
-    let playerRole = null; // 'host', 'guest', 'single'
-    let gameMode = null; // 'pvp', 'pvb'
+    let player1Name = "Játékos 1";
+    let player2Name = "Játékos 2";
+    let playerRole = null; // 'host', 'guest', 'single', 'local'
+    let gameMode = null; // 'pvp', 'pvb', 'local'
     let currentPlayer = 'X';
     let gameActive = false;
     let boardState = ['', '', '', '', '', '', '', '', ''];
@@ -720,6 +763,7 @@
         mainMenu: document.getElementById('main-menu'),
         pvpScreen: document.getElementById('pvp-screen'),
         pvbScreen: document.getElementById('pvb-screen'),
+        localScreen: document.getElementById('local-screen'),
         createGameScreen: document.getElementById('create-game-screen'),
         joinGameScreen: document.getElementById('join-game-screen'),
         gameScreen: document.getElementById('game-screen')
@@ -735,11 +779,14 @@
 
             screens.pvpScreen.classList.remove('active');
             screens.pvbScreen.classList.remove('active');
+            screens.localScreen.classList.remove('active');
 
             if (gameMode === 'pvp') {
                 screens.pvpScreen.classList.add('active');
-            } else {
+            } else if (gameMode === 'pvb') {
                 screens.pvbScreen.classList.add('active');
+            } else if (gameMode === 'local') {
+                screens.localScreen.classList.add('active');
             }
         });
     });
@@ -770,6 +817,14 @@
         startBotGame();
     });
 
+    document.getElementById('start-local-game').addEventListener('click', () => {
+        player1Name = document.getElementById('player1-name').value || "Játékos 1";
+        player2Name = document.getElementById('player2-name').value || "Játékos 2";
+        playerRole = 'local';
+        gameMode = 'local';
+        startLocalGame();
+    });
+
     document.getElementById('create-game-confirm').addEventListener('click', createGame);
     document.getElementById('join-game-confirm').addEventListener('click', joinGame);
     document.getElementById('back-to-main').addEventListener('click', backToMain);
@@ -788,6 +843,7 @@
         showScreen(screens.mainMenu);
         screens.pvpScreen.classList.remove('active');
         screens.pvbScreen.classList.remove('active');
+        screens.localScreen.classList.remove('active');
         gameMode = null;
     }
 
@@ -829,6 +885,7 @@
             board: ['', '', '', '', '', '', '', '', ''],
             status: 'waiting',
             winner: null,
+            winningCombo: null,
             mode: gameMode
         };
 
@@ -900,25 +957,36 @@
         currentGameId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
         // Játék állapotának létrehozása
-        const gameData = {
-            playerX: playerName,
-            playerO: 'Bot (' + botDifficulty + ')',
-            currentPlayer: 'X',
-            board: ['', '', '', '', '', '', '', '', ''],
-            status: 'playing',
-            winner: null,
-            mode: 'pvb'
-        };
-
         document.getElementById('current-game-id').textContent = currentGameId;
         document.getElementById('player-x-name').textContent = playerName;
         document.getElementById('player-o-name').textContent = 'Bot (' + botDifficulty + ')';
         document.getElementById('game-status').textContent = 'A játék elindult! Te kezdesz (X).';
 
-        boardState = gameData.board;
+        boardState = ['', '', '', '', '', '', '', '', ''];
         currentPlayer = 'X';
         gameActive = true;
         winningCombo = null;
+
+        updateBoard();
+        setupBoardEventListeners();
+
+        showScreen(screens.gameScreen);
+    }
+
+    function startLocalGame() {
+        currentGameId = null;
+        document.getElementById('game-id-container').style.display = 'none';
+        document.getElementById('player-x-name').textContent = player1Name;
+        document.getElementById('player-o-name').textContent = player2Name;
+        document.getElementById('game-status').textContent = 'A játék elindult! ' + player1Name + ' (X) kezd.';
+
+        boardState = ['', '', '', '', '', '', '', '', ''];
+        currentPlayer = 'X';
+        gameActive = true;
+        winningCombo = null;
+
+        document.getElementById('player-x').classList.add('active');
+        document.getElementById('player-o').classList.remove('active');
 
         updateBoard();
         setupBoardEventListeners();
@@ -936,7 +1004,7 @@
             boardState = gameData.board;
             currentPlayer = gameData.currentPlayer;
             gameActive = gameData.status === 'playing';
-            winningCombo = null;
+            winningCombo = gameData.winningCombo || null;
 
             // Játékos nevek frissítése
             document.getElementById('player-x-name').textContent = gameData.playerX;
@@ -990,7 +1058,7 @@
 
         const index = parseInt(event.target.dataset.index);
 
-        // Ha a játékos nem az aktuális, vagy a cella már foglalt
+        // Ha a cella már foglalt
         if (boardState[index] !== '') return;
 
         // Multiplayer módban csak a saját játékos léphet
@@ -1017,15 +1085,17 @@
             // Győzelem ellenőrzése
             const result = checkWinner(newBoard);
             const status = result ? 'ended' : newBoard.includes('') ? 'playing' : 'ended';
+            const winner = result ? result.winner : (status === 'ended' ? 'draw' : null);
+            const winningCombo = result ? result.combo : null;
 
             database.ref('games/' + currentGameId).update({
                 board: newBoard,
                 currentPlayer: nextPlayer,
                 status: status,
-                winner: result ? result.winner : (status === 'ended' ? 'draw' : null),
-                winningCombo: result ? result.combo : null
+                winner: winner,
+                winningCombo: winningCombo
             });
-        } else {
+        } else if (gameMode === 'pvb') {
             // Bot elleni játék - helyi frissítés
             boardState[index] = currentPlayer;
 
@@ -1059,6 +1129,41 @@
 
                 // Bot lépése
                 setTimeout(makeBotMove, 1000);
+            }
+        } else if (gameMode === 'local') {
+            // Helyi multiplayer játék
+            boardState[index] = currentPlayer;
+
+            // Győzelem ellenőrzése
+            const result = checkWinner(boardState);
+            if (result) {
+                gameActive = false;
+                winningCombo = result.combo;
+
+                if (result.winner === 'draw') {
+                    document.getElementById('game-status').textContent = 'Döntetlen!';
+                } else {
+                    const winnerName = result.winner === 'X' ? player1Name : player2Name;
+                    document.getElementById('game-status').textContent = `${winnerName} (${result.winner}) nyert!`;
+
+                    // Nyerő játékos kiemelése
+                    if (result.winner === 'X') {
+                        document.getElementById('player-x').classList.add('winner');
+                    } else {
+                        document.getElementById('player-o').classList.add('winner');
+                    }
+                }
+                updateBoard();
+            } else {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                const nextPlayer = currentPlayer === 'X' ? player1Name : player2Name;
+                document.getElementById('game-status').textContent = `Következő: ${nextPlayer} (${currentPlayer})`;
+
+                // Aktív játékos kiemelése
+                document.getElementById('player-x').classList.toggle('active', currentPlayer === 'X');
+                document.getElementById('player-o').classList.toggle('active', currentPlayer === 'O');
+
+                updateBoard();
             }
         }
     }
@@ -1261,16 +1366,25 @@
                 winningCombo: null
             });
         } else {
-            // Bot elleni játék újraindítása
+            // Bot elleni játék vagy helyi multiplayer újraindítása
             boardState = ['', '', '', '', '', '', '', '', ''];
             currentPlayer = 'X';
             gameActive = true;
             winningCombo = null;
-            document.getElementById('game-status').textContent = 'A játék elindult! Te kezdesz (X).';
-            document.getElementById('player-x').classList.add('active');
-            document.getElementById('player-o').classList.remove('active');
+
             document.getElementById('player-x').classList.remove('winner');
             document.getElementById('player-o').classList.remove('winner');
+
+            if (gameMode === 'pvb') {
+                document.getElementById('game-status').textContent = 'A játék elindult! Te kezdesz (X).';
+                document.getElementById('player-x').classList.add('active');
+                document.getElementById('player-o').classList.remove('active');
+            } else if (gameMode === 'local') {
+                document.getElementById('game-status').textContent = 'A játék elindult! ' + player1Name + ' (X) kezd.';
+                document.getElementById('player-x').classList.add('active');
+                document.getElementById('player-o').classList.remove('active');
+            }
+
             updateBoard();
         }
     }
@@ -1286,6 +1400,8 @@
         boardState = ['', '', '', '', '', '', '', '', ''];
         gameActive = false;
         winningCombo = null;
+
+        document.getElementById('game-id-container').style.display = 'flex';
 
         showScreen(screens.mainMenu);
     }
