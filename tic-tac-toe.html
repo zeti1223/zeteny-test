@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apple Tic Tac Toe</title>
+    <title>Tic Tac Toe</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -521,13 +521,10 @@
 <div class="container">
     <header>
         <div class="logo">
-            <i class="fa-brands fa-apple"></i>
             <span>Tic Tac Toe</span>
         </div>
-        <div class="subtitle">A modern Apple-stílusú körök és kereszt játék</div>
     </header>
 
-    <!-- Főmenü képernyő -->
     <div id="main-menu" class="screen active">
         <div class="card">
             <div class="card-header">
@@ -625,7 +622,6 @@
         </div>
     </div>
 
-    <!-- Játék szoba létrehozása -->
     <div id="create-game-screen" class="screen">
         <div class="card">
             <div class="card-header">
@@ -634,7 +630,7 @@
             <div class="card-body">
                 <div class="input-group">
                     <label for="host-name">Neved</label>
-                    <input type="text" id="host-name" placeholder="Add meg a neved" value="Gazda">
+                    <input type="text" id="host-name" placeholder="Add meg a neved">
                 </div>
                 <button id="create-game-confirm" class="btn">
                     <i class="fas fa-check-circle"></i> Szoba Létrehozása
@@ -646,7 +642,6 @@
         </div>
     </div>
 
-    <!-- Csatlakozás játékhoz -->
     <div id="join-game-screen" class="screen">
         <div class="card">
             <div class="card-header">
@@ -655,7 +650,7 @@
             <div class="card-body">
                 <div class="input-group">
                     <label for="join-name">Neved</label>
-                    <input type="text" id="join-name" placeholder="Add meg a neved" value="Játékos">
+                    <input type="text" id="join-name" placeholder="Add meg a neved">
                 </div>
                 <div class="input-group">
                     <label for="game-id">Szoba ID</label>
@@ -671,7 +666,6 @@
         </div>
     </div>
 
-    <!-- Játék képernyő -->
     <div id="game-screen" class="screen">
         <div class="game-id-display" id="game-id-container">
             <div class="game-id-label">Szoba ID:</div>
@@ -725,11 +719,10 @@
 </div>
 
 <div class="footer">
-    Apple Tic Tac Toe &copy; 2023 | Firebase backend | Multiplayer & Bot
+    Zeteny Tic Tac Toe | Firebase backend | Multiplayer & Bot
 </div>
 
 <script>
-    // Firebase konfiguráció
     const firebaseConfig = {
         apiKey: "AIzaSyDn1OTmejSt3k705cFoNFVaN0lX-t0sxlo",
         authDomain: "zeteny-test.firebaseapp.com",
@@ -741,24 +734,21 @@
         measurementId: "G-E3H84LKM0D"
     };
 
-    // Firebase inicializálása
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // Állapot változók
     let currentGameId = null;
     let playerName = "Játékos";
     let player1Name = "Játékos 1";
     let player2Name = "Játékos 2";
-    let playerRole = null; // 'host', 'guest', 'single', 'local'
-    let gameMode = null; // 'pvp', 'pvb', 'local'
+    let playerRole = null;
+    let gameMode = null;
     let currentPlayer = 'X';
     let gameActive = false;
     let boardState = ['', '', '', '', '', '', '', '', ''];
-    let botDifficulty = 'medium'; // 'easy', 'medium', 'hard'
-    let winningCombo = null; // Tárolja a nyerő kombinációt
+    let botDifficulty = 'medium';
+    let winningCombo = null;
 
-    // DOM elemek
     const screens = {
         mainMenu: document.getElementById('main-menu'),
         pvpScreen: document.getElementById('pvp-screen'),
@@ -769,7 +759,6 @@
         gameScreen: document.getElementById('game-screen')
     };
 
-    // Gombok és eseménykezelők
     document.querySelectorAll('.mode-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
@@ -791,7 +780,6 @@
         });
     });
 
-    // Nehézségi szint kiválasztása
     document.querySelectorAll('.difficulty-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('selected'));
@@ -833,7 +821,6 @@
     document.getElementById('leave-game').addEventListener('click', leaveGame);
     document.getElementById('copy-game-id').addEventListener('click', copyGameId);
 
-    // Segédfüggvények
     function showScreen(screen) {
         Object.values(screens).forEach(s => s.classList.remove('active'));
         screen.classList.add('active');
@@ -868,16 +855,13 @@
         showNotification('Szoba azonosító másolva!');
     }
 
-    // Játék logika
     function createGame() {
         const hostName = document.getElementById('host-name').value || "Gazda";
         playerName = hostName;
         playerRole = 'host';
 
-        // Véletlenszerű játékazonosító generálása
         currentGameId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-        // Játék állapotának létrehozása Firebase-ben
         const gameData = {
             playerX: hostName,
             playerO: '',
@@ -896,7 +880,6 @@
                 document.getElementById('player-o-name').textContent = 'Várakozás...';
                 document.getElementById('game-status').textContent = 'Várakozás második játékosra...';
 
-                // Játékállapot figyelése
                 setupGameListeners();
 
                 showScreen(screens.gameScreen);
@@ -919,7 +902,6 @@
         playerRole = 'guest';
         currentGameId = gameId;
 
-        // Ellenőrizzük, hogy létezik-e a játék
         database.ref('games/' + gameId).once('value')
             .then(snapshot => {
                 if (snapshot.exists()) {
@@ -930,7 +912,6 @@
                         return;
                     }
 
-                    // Csatlakozás a játékhoz
                     database.ref('games/' + gameId).update({
                         playerO: guestName,
                         status: 'playing'
@@ -941,7 +922,6 @@
                             document.getElementById('player-o-name').textContent = guestName;
                             document.getElementById('game-status').textContent = 'A játék elindult! Az X játékos kezd.';
 
-                            // Játékállapot figyelése
                             setupGameListeners();
 
                             showScreen(screens.gameScreen);
@@ -953,10 +933,8 @@
     }
 
     function startBotGame() {
-        // Véletlenszerű játékazonosító generálása
         currentGameId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-        // Játék állapotának létrehozása
         document.getElementById('current-game-id').textContent = currentGameId;
         document.getElementById('player-x-name').textContent = playerName;
         document.getElementById('player-o-name').textContent = 'Bot (' + botDifficulty + ')';
@@ -967,7 +945,6 @@
         gameActive = true;
         winningCombo = null;
 
-        // Reset játékos kiemelések
         resetPlayerHighlights();
 
         updateBoard();
@@ -988,7 +965,6 @@
         gameActive = true;
         winningCombo = null;
 
-        // Reset játékos kiemelések
         resetPlayerHighlights();
 
         document.getElementById('player-x').classList.add('active');
@@ -1001,7 +977,6 @@
     }
 
     function resetPlayerHighlights() {
-        // Eltávolítjuk a nyertes kiemelést mindkét játékosról
         document.getElementById('player-x').classList.remove('winner');
         document.getElementById('player-o').classList.remove('winner');
     }
@@ -1018,15 +993,12 @@
             gameActive = gameData.status === 'playing';
             winningCombo = gameData.winningCombo || null;
 
-            // Játékos nevek frissítése
             document.getElementById('player-x-name').textContent = gameData.playerX;
             document.getElementById('player-o-name').textContent = gameData.playerO || 'Várakozás...';
 
-            // Aktív játékos kiemelése
             document.getElementById('player-x').classList.toggle('active', currentPlayer === 'X' && gameActive);
             document.getElementById('player-o').classList.toggle('active', currentPlayer === 'O' && gameActive);
 
-            // Játékállapot frissítése
             if (gameData.status === 'waiting') {
                 document.getElementById('game-status').textContent = 'Várakozás második játékosra...';
             } else if (gameData.status === 'playing') {
@@ -1038,7 +1010,6 @@
                     const winnerName = gameData.winner === 'X' ? gameData.playerX : gameData.playerO;
                     document.getElementById('game-status').textContent = `${winnerName} (${gameData.winner}) nyert!`;
 
-                    // Nyerő játékos kiemelése
                     if (gameData.winner === 'X') {
                         document.getElementById('player-x').classList.add('winner');
                     } else {
@@ -1049,7 +1020,6 @@
 
             updateBoard();
 
-            // Bot lépése, ha szükséges
             if (gameActive && gameMode === 'pvb' && currentPlayer === 'O' && playerRole === 'host') {
                 setTimeout(makeBotMove, 800);
             }
@@ -1070,31 +1040,24 @@
 
         const index = parseInt(event.target.dataset.index);
 
-        // Ha a cella már foglalt
         if (boardState[index] !== '') return;
 
-        // Multiplayer módban csak a saját játékos léphet
         if (gameMode === 'pvp') {
             if ((playerRole === 'host' && currentPlayer !== 'X') ||
                 (playerRole === 'guest' && currentPlayer !== 'O')) {
                 return;
             }
-        }
-        // Bot elleni játékban csak az ember léphet
-        else if (gameMode === 'pvb') {
+        } else if (gameMode === 'pvb') {
             if (playerRole === 'single' && currentPlayer !== 'X') return;
             if (playerRole === 'host' && currentPlayer !== 'X') return;
         }
 
-        // Lépés végrehajtása
         if (gameMode === 'pvp') {
-            // Firebase frissítése
             const newBoard = [...boardState];
             newBoard[index] = currentPlayer;
 
             const nextPlayer = currentPlayer === 'X' ? 'O' : 'X';
 
-            // Győzelem ellenőrzése
             const result = checkWinner(newBoard);
             const status = result ? 'ended' : newBoard.includes('') ? 'playing' : 'ended';
             const winner = result ? result.winner : (status === 'ended' ? 'draw' : null);
@@ -1108,10 +1071,8 @@
                 winningCombo: winningCombo
             });
         } else if (gameMode === 'pvb') {
-            // Bot elleni játék - helyi frissítés
             boardState[index] = currentPlayer;
 
-            // Győzelem ellenőrzése
             const result = checkWinner(boardState);
             if (result) {
                 gameActive = false;
@@ -1123,7 +1084,6 @@
                     document.getElementById('game-status').textContent =
                         result.winner === 'X' ? `${playerName} (X) nyert!` : 'Bot nyert!';
 
-                    // Nyerő játékos kiemelése
                     if (result.winner === 'X') {
                         document.getElementById('player-x').classList.add('winner');
                     } else {
@@ -1139,14 +1099,11 @@
 
                 updateBoard();
 
-                // Bot lépése
                 setTimeout(makeBotMove, 1000);
             }
         } else if (gameMode === 'local') {
-            // Helyi multiplayer játék
             boardState[index] = currentPlayer;
 
-            // Győzelem ellenőrzése
             const result = checkWinner(boardState);
             if (result) {
                 gameActive = false;
@@ -1158,7 +1115,6 @@
                     const winnerName = result.winner === 'X' ? player1Name : player2Name;
                     document.getElementById('game-status').textContent = `${winnerName} (${result.winner}) nyert!`;
 
-                    // Nyerő játékos kiemelése
                     if (result.winner === 'X') {
                         document.getElementById('player-x').classList.add('winner');
                     } else {
@@ -1171,7 +1127,6 @@
                 const nextPlayer = currentPlayer === 'X' ? player1Name : player2Name;
                 document.getElementById('game-status').textContent = `Következő: ${nextPlayer} (${currentPlayer})`;
 
-                // Aktív játékos kiemelése
                 document.getElementById('player-x').classList.toggle('active', currentPlayer === 'X');
                 document.getElementById('player-o').classList.toggle('active', currentPlayer === 'O');
 
@@ -1183,7 +1138,6 @@
     function makeBotMove() {
         if (!gameActive) return;
 
-        // Bot lépésének kiválasztása
         let moveIndex;
 
         switch (botDifficulty) {
@@ -1200,10 +1154,8 @@
                 moveIndex = getRandomMove();
         }
 
-        // Lépés végrehajtása
         boardState[moveIndex] = 'O';
 
-        // Győzelem ellenőrzése
         const result = checkWinner(boardState);
         if (result) {
             gameActive = false;
@@ -1215,7 +1167,6 @@
                 document.getElementById('game-status').textContent =
                     result.winner === 'O' ? 'Bot nyert!' : `${playerName} (${result.winner}) nyert!`;
 
-                // Nyerő játékos kiemelése
                 if (result.winner === 'X') {
                     document.getElementById('player-x').classList.add('winner');
                 } else {
@@ -1232,7 +1183,6 @@
         updateBoard();
     }
 
-    // Bot lépés logika
     function getRandomMove() {
         const emptyCells = [];
         boardState.forEach((cell, index) => {
@@ -1242,7 +1192,6 @@
     }
 
     function getMediumMove() {
-        // 1. Próbáljunk nyerni
         for (let i = 0; i < 9; i++) {
             if (boardState[i] === '') {
                 const newBoard = [...boardState];
@@ -1252,7 +1201,6 @@
             }
         }
 
-        // 2. Blokkoljuk az ellenfél nyerését
         for (let i = 0; i < 9; i++) {
             if (boardState[i] === '') {
                 const newBoard = [...boardState];
@@ -1262,22 +1210,18 @@
             }
         }
 
-        // 3. Középső mező, ha üres
         if (boardState[4] === '') return 4;
 
-        // 4. Sarok mezők
         const corners = [0, 2, 6, 8];
         const emptyCorners = corners.filter(index => boardState[index] === '');
         if (emptyCorners.length > 0) {
             return emptyCorners[Math.floor(Math.random() * emptyCorners.length)];
         }
 
-        // 5. Véletlenszerű lépés
         return getRandomMove();
     }
 
     function getBestMove() {
-        // Minimax algoritmus implementációja
         let bestScore = -Infinity;
         let bestMove = null;
 
@@ -1333,9 +1277,9 @@
 
     function checkWinner(board) {
         const winPatterns = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8], // sorok
-            [0, 3, 6], [1, 4, 7], [2, 5, 8], // oszlopok
-            [0, 4, 8], [2, 4, 6]             // átlók
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
         ];
 
         for (const pattern of winPatterns) {
@@ -1354,13 +1298,11 @@
             cell.textContent = boardState[index];
             cell.className = 'cell';
 
-            // Töröljük a korábbi win osztályt
             cell.classList.remove('win');
 
             if (boardState[index] === 'X') cell.classList.add('x');
             if (boardState[index] === 'O') cell.classList.add('o');
 
-            // Ha ez a cella a nyerő kombinációban van
             if (winningCombo && winningCombo.includes(index)) {
                 cell.classList.add('win');
             }
@@ -1368,7 +1310,6 @@
     }
 
     function restartGame() {
-        // Minden módban reseteljük a kiemeléseket
         resetPlayerHighlights();
         winningCombo = null;
         boardState = ['', '', '', '', '', '', '', '', ''];
@@ -1376,7 +1317,6 @@
         gameActive = true;
 
         if (gameMode === 'pvp') {
-            // Firebase frissítése
             database.ref('games/' + currentGameId).update({
                 board: boardState,
                 currentPlayer: 'X',
@@ -1402,17 +1342,14 @@
 
     function leaveGame() {
         if (gameMode === 'pvp' && currentGameId) {
-            // Játék törlése Firebase-ből
             database.ref('games/' + currentGameId).remove();
         }
 
-        // Visszatérés a főmenühöz
         currentGameId = null;
         boardState = ['', '', '', '', '', '', '', '', ''];
         gameActive = false;
         winningCombo = null;
 
-        // Reset játékos kiemelések
         resetPlayerHighlights();
 
         document.getElementById('game-id-container').style.display = 'flex';
@@ -1420,9 +1357,7 @@
         showScreen(screens.mainMenu);
     }
 
-    // Inicializálás
     document.addEventListener('DOMContentLoaded', () => {
-        // Alapértelmezett mód kiválasztása
         document.querySelector('[data-mode="pvp"]').classList.add('selected');
         gameMode = 'pvp';
         screens.pvpScreen.classList.add('active');
