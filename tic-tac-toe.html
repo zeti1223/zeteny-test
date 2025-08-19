@@ -654,7 +654,7 @@
                 </div>
                 <div class="input-group">
                     <label for="game-id">Szoba ID</label>
-                    <input type="text" id="game-id" placeholder="Add meg a szoba azonosítóját">
+                    <input type="text" id="game-id" placeholder="Add meg a szoba azonosítóját" pattern="[0-9]*" inputmode="numeric" maxlength="6">
                 </div>
                 <button id="join-game-confirm" class="btn">
                     <i class="fas fa-sign-in-alt"></i> Csatlakozás
@@ -860,7 +860,8 @@
         playerName = hostName;
         playerRole = 'host';
 
-        currentGameId = Math.random().toString(36).substring(2, 8).toUpperCase();
+        // Generate 6-digit numeric ID
+        currentGameId = Math.floor(100000 + Math.random() * 900000).toString();
 
         const gameData = {
             playerX: hostName,
@@ -891,10 +892,16 @@
 
     function joinGame() {
         const guestName = document.getElementById('join-name').value || "Játékos";
-        const gameId = document.getElementById('game-id').value.trim().toUpperCase();
+        const gameId = document.getElementById('game-id').value.trim();
 
         if (!gameId) {
             showNotification('Kérjük add meg a szoba azonosítóját!', false);
+            return;
+        }
+
+        // Validate that game ID is 6-digit number
+        if (!/^\d{6}$/.test(gameId)) {
+            showNotification('A szoba azonosítónak 6 számjegyből kell állnia!', false);
             return;
         }
 
@@ -933,7 +940,7 @@
     }
 
     function startBotGame() {
-        currentGameId = Math.random().toString(36).substring(2, 8).toUpperCase();
+        currentGameId = Math.floor(100000 + Math.random() * 900000).toString();
 
         document.getElementById('current-game-id').textContent = currentGameId;
         document.getElementById('player-x-name').textContent = playerName;
@@ -1165,203 +1172,4 @@
                 document.getElementById('game-status').textContent = 'Döntetlen!';
             } else {
                 document.getElementById('game-status').textContent =
-                    result.winner === 'O' ? 'Bot nyert!' : `${playerName} (${result.winner}) nyert!`;
-
-                if (result.winner === 'X') {
-                    document.getElementById('player-x').classList.add('winner');
-                } else {
-                    document.getElementById('player-o').classList.add('winner');
-                }
-            }
-        } else {
-            currentPlayer = 'X';
-            document.getElementById('game-status').textContent = `Te következel (${playerName})`;
-            document.getElementById('player-x').classList.add('active');
-            document.getElementById('player-o').classList.remove('active');
-        }
-
-        updateBoard();
-    }
-
-    function getRandomMove() {
-        const emptyCells = [];
-        boardState.forEach((cell, index) => {
-            if (cell === '') emptyCells.push(index);
-        });
-        return emptyCells[Math.floor(Math.random() * emptyCells.length)];
-    }
-
-    function getMediumMove() {
-        for (let i = 0; i < 9; i++) {
-            if (boardState[i] === '') {
-                const newBoard = [...boardState];
-                newBoard[i] = 'O';
-                const result = checkWinner(newBoard);
-                if (result && result.winner === 'O') return i;
-            }
-        }
-
-        for (let i = 0; i < 9; i++) {
-            if (boardState[i] === '') {
-                const newBoard = [...boardState];
-                newBoard[i] = 'X';
-                const result = checkWinner(newBoard);
-                if (result && result.winner === 'X') return i;
-            }
-        }
-
-        if (boardState[4] === '') return 4;
-
-        const corners = [0, 2, 6, 8];
-        const emptyCorners = corners.filter(index => boardState[index] === '');
-        if (emptyCorners.length > 0) {
-            return emptyCorners[Math.floor(Math.random() * emptyCorners.length)];
-        }
-
-        return getRandomMove();
-    }
-
-    function getBestMove() {
-        let bestScore = -Infinity;
-        let bestMove = null;
-
-        for (let i = 0; i < 9; i++) {
-            if (boardState[i] === '') {
-                boardState[i] = 'O';
-                let score = minimax(boardState, 0, false);
-                boardState[i] = '';
-
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMove = i;
-                }
-            }
-        }
-
-        return bestMove;
-    }
-
-    function minimax(board, depth, isMaximizing) {
-        const result = checkWinner(board);
-
-        if (result) {
-            if (result.winner === 'O') return 10 - depth;
-            if (result.winner === 'X') return depth - 10;
-            return 0;
-        }
-
-        if (isMaximizing) {
-            let bestScore = -Infinity;
-            for (let i = 0; i < 9; i++) {
-                if (board[i] === '') {
-                    board[i] = 'O';
-                    let score = minimax(board, depth + 1, false);
-                    board[i] = '';
-                    bestScore = Math.max(score, bestScore);
-                }
-            }
-            return bestScore;
-        } else {
-            let bestScore = Infinity;
-            for (let i = 0; i < 9; i++) {
-                if (board[i] === '') {
-                    board[i] = 'X';
-                    let score = minimax(board, depth + 1, true);
-                    board[i] = '';
-                    bestScore = Math.min(score, bestScore);
-                }
-            }
-            return bestScore;
-        }
-    }
-
-    function checkWinner(board) {
-        const winPatterns = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],
-            [0, 4, 8], [2, 4, 6]
-        ];
-
-        for (const pattern of winPatterns) {
-            const [a, b, c] = pattern;
-            if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                return { winner: board[a], combo: pattern };
-            }
-        }
-
-        if (!board.includes('')) return { winner: 'draw', combo: null };
-        return null;
-    }
-
-    function updateBoard() {
-        document.querySelectorAll('.cell').forEach((cell, index) => {
-            cell.textContent = boardState[index];
-            cell.className = 'cell';
-
-            cell.classList.remove('win');
-
-            if (boardState[index] === 'X') cell.classList.add('x');
-            if (boardState[index] === 'O') cell.classList.add('o');
-
-            if (winningCombo && winningCombo.includes(index)) {
-                cell.classList.add('win');
-            }
-        });
-    }
-
-    function restartGame() {
-        resetPlayerHighlights();
-        winningCombo = null;
-        boardState = ['', '', '', '', '', '', '', '', ''];
-        currentPlayer = 'X';
-        gameActive = true;
-
-        if (gameMode === 'pvp') {
-            database.ref('games/' + currentGameId).update({
-                board: boardState,
-                currentPlayer: 'X',
-                status: 'playing',
-                winner: null,
-                winningCombo: null
-            });
-            document.getElementById('game-status').textContent = 'Játék újraindítva! Az X játékos kezd.';
-        }
-        else if (gameMode === 'pvb') {
-            document.getElementById('game-status').textContent = 'A játék elindult! Te kezdesz (X).';
-            document.getElementById('player-x').classList.add('active');
-            document.getElementById('player-o').classList.remove('active');
-        }
-        else if (gameMode === 'local') {
-            document.getElementById('game-status').textContent = 'A játék elindult! ' + player1Name + ' (X) kezd.';
-            document.getElementById('player-x').classList.add('active');
-            document.getElementById('player-o').classList.remove('active');
-        }
-
-        updateBoard();
-    }
-
-    function leaveGame() {
-        if (gameMode === 'pvp' && currentGameId) {
-            database.ref('games/' + currentGameId).remove();
-        }
-
-        currentGameId = null;
-        boardState = ['', '', '', '', '', '', '', '', ''];
-        gameActive = false;
-        winningCombo = null;
-
-        resetPlayerHighlights();
-
-        document.getElementById('game-id-container').style.display = 'flex';
-
-        showScreen(screens.mainMenu);
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelector('[data-mode="pvp"]').classList.add('selected');
-        gameMode = 'pvp';
-        screens.pvpScreen.classList.add('active');
-    });
-</script>
-</body>
-</html>
+                    result.winner === 'O' ? 'Bot nyert!' : `${playerName} (${result.win
