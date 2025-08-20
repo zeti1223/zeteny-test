@@ -654,7 +654,7 @@
                 </div>
                 <div class="input-group">
                     <label for="game-id">Szoba ID</label>
-                    <input type="text" id="game-id" placeholder="Add meg a szoba azonosítóját">
+                    <input type="text" id="game-id" placeholder="Add meg a szoba azonosítóját" pattern="[0-9]*" inputmode="numeric" maxlength="6">
                 </div>
                 <button id="join-game-confirm" class="btn">
                     <i class="fas fa-sign-in-alt"></i> Csatlakozás
@@ -860,7 +860,8 @@
         playerName = hostName;
         playerRole = 'host';
 
-        currentGameId = Math.random().toString(36).substring(2, 8).toUpperCase();
+        // Generate 6-digit numeric ID
+        currentGameId = Math.floor(100000 + Math.random() * 900000).toString();
 
         const gameData = {
             playerX: hostName,
@@ -891,10 +892,16 @@
 
     function joinGame() {
         const guestName = document.getElementById('join-name').value || "Játékos";
-        const gameId = document.getElementById('game-id').value.trim().toUpperCase();
+        const gameId = document.getElementById('game-id').value.trim();
 
         if (!gameId) {
             showNotification('Kérjük add meg a szoba azonosítóját!', false);
+            return;
+        }
+
+        // Validate that game ID is 6-digit number
+        if (!/^\d{6}$/.test(gameId)) {
+            showNotification('A szoba azonosítónak 6 számjegyből kell állnia!', false);
             return;
         }
 
@@ -933,7 +940,7 @@
     }
 
     function startBotGame() {
-        currentGameId = Math.random().toString(36).substring(2, 8).toUpperCase();
+        currentGameId = Math.floor(100000 + Math.random() * 900000).toString();
 
         document.getElementById('current-game-id').textContent = currentGameId;
         document.getElementById('player-x-name').textContent = playerName;
@@ -1361,6 +1368,15 @@
         document.querySelector('[data-mode="pvp"]').classList.add('selected');
         gameMode = 'pvp';
         screens.pvpScreen.classList.add('active');
+
+        // Add input validation for game ID field
+        const gameIdInput = document.getElementById('game-id');
+        gameIdInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length > 6) {
+                this.value = this.value.slice(0, 6);
+            }
+        });
     });
 </script>
 </body>
