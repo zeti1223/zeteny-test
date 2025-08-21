@@ -8,6 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
+        /* Alap stílusok maradnak változatlanok */
         * {
             margin: 0;
             padding: 0;
@@ -501,6 +502,156 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
+        /* Új stílusok a kért funkciókhoz */
+        .chat-container {
+            margin-top: 20px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 15px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            max-height: 200px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding-right: 5px;
+        }
+
+        .chat-message {
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            border-radius: 12px;
+            background: rgba(0, 113, 227, 0.05);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .chat-message.system {
+            background: rgba(0, 0, 0, 0.05);
+            font-style: italic;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .chat-message.spectator {
+            background: rgba(255, 149, 0, 0.05);
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .send-chat-btn {
+            padding: 10px 15px;
+            border-radius: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .spectators-container {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .spectators-count {
+            margin-left: 5px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .emote-container {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .emote-btn {
+            padding: 5px 10px;
+            border-radius: 8px;
+            background: rgba(0, 113, 227, 0.1);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .emote-btn:hover {
+            background: rgba(0, 113, 227, 0.2);
+            transform: scale(1.1);
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            padding: 15px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .score-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .restart-request {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 149, 0, 0.1);
+            border-radius: 12px;
+            border: 1px solid var(--warning);
+        }
+
+        .restart-request-btn {
+            padding: 8px 15px;
+            border-radius: 8px;
+            background: var(--warning);
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .restart-request-btn:hover {
+            background: #e08600;
+        }
+
         @media (max-width: 500px) {
             .game-mode-selector {
                 flex-direction: column;
@@ -513,6 +664,11 @@
 
             .difficulty-selector {
                 flex-direction: column;
+            }
+
+            .score-board {
+                flex-direction: column;
+                gap: 15px;
             }
         }
     </style>
@@ -675,6 +831,21 @@
             </button>
         </div>
 
+        <div class="score-board" id="score-board">
+            <div class="score-item">
+                <div class="score-label" id="player-x-score-label">X Játékos</div>
+                <div class="score-value" id="player-x-score">0</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">Döntetlen</div>
+                <div class="score-value" id="draw-score">0</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label" id="player-o-score-label">O Játékos</div>
+                <div class="score-value" id="player-o-score">0</div>
+            </div>
+        </div>
+
         <div class="player-info">
             <div class="player" id="player-x">
                 <div class="player-icon">❌</div>
@@ -692,6 +863,12 @@
             A játék hamarosan indul...
         </div>
 
+        <div class="restart-request" id="restart-request-container" style="display: none;">
+            <span id="restart-request-text"></span>
+            <button class="restart-request-btn" id="accept-restart">Elfogad</button>
+            <button class="restart-request-btn" id="decline-restart">Elutasít</button>
+        </div>
+
         <div class="game-board" id="board">
             <div class="cell" data-index="0"></div>
             <div class="cell" data-index="1"></div>
@@ -702,6 +879,25 @@
             <div class="cell" data-index="6"></div>
             <div class="cell" data-index="7"></div>
             <div class="cell" data-index="8"></div>
+        </div>
+
+        <div class="spectators-container">
+            <i class="fas fa-eye"></i> Nézők: <span class="spectators-count" id="spectators-count">0</span>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="chat-input-container">
+                <input type="text" class="chat-input" id="chat-input" placeholder="Írj üzenetet...">
+                <button class="send-chat-btn" id="send-chat-btn"><i class="fas fa-paper-plane"></i></button>
+            </div>
+            <div class="emote-container" id="emote-container">
+                <button class="emote-btn" data-emote="👍">👍</button>
+                <button class="emote-btn" data-emote="👎">👎</button>
+                <button class="emote-btn" data-emote="😄">😄</button>
+                <button class="emote-btn" data-emote="😢">😢</button>
+                <button class="emote-btn" data-emote="🎉">🎉</button>
+            </div>
         </div>
 
         <button id="restart-game" class="btn btn-secondary">
@@ -748,6 +944,11 @@
     let boardState = ['', '', '', '', '', '', '', '', ''];
     let botDifficulty = 'medium';
     let winningCombo = null;
+    let latestGameData = null;
+    let playerMark = null;
+    let spectatorId = null;
+    let isSpectator = false;
+    let scores = { X: 0, O: 0, draw: 0 };
 
     const screens = {
         mainMenu: document.getElementById('main-menu'),
@@ -817,9 +1018,22 @@
     document.getElementById('join-game-confirm').addEventListener('click', joinGame);
     document.getElementById('back-to-main').addEventListener('click', backToMain);
     document.getElementById('back-to-main-2').addEventListener('click', backToMain);
-    document.getElementById('restart-game').addEventListener('click', restartGame);
+    document.getElementById('restart-game').addEventListener('click', requestRestartGame);
     document.getElementById('leave-game').addEventListener('click', leaveGame);
     document.getElementById('copy-game-id').addEventListener('click', copyGameId);
+    document.getElementById('send-chat-btn').addEventListener('click', sendChatMessage);
+    document.getElementById('chat-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendChatMessage();
+    });
+    document.getElementById('accept-restart').addEventListener('click', acceptRestart);
+    document.getElementById('decline-restart').addEventListener('click', declineRestart);
+
+    document.querySelectorAll('.emote-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const emote = btn.dataset.emote;
+            sendEmote(emote);
+        });
+    });
 
     function showScreen(screen) {
         Object.values(screens).forEach(s => s.classList.remove('active'));
@@ -859,6 +1073,7 @@
         const hostName = document.getElementById('host-name').value || "Játékos";
         playerName = hostName;
         playerRole = 'host';
+        playerMark = 'X';
 
         // Generate 6-digit numeric ID
         currentGameId = Math.floor(100000 + Math.random() * 900000).toString();
@@ -871,7 +1086,11 @@
             status: 'waiting',
             winner: null,
             winningCombo: null,
-            mode: gameMode
+            mode: gameMode,
+            scores: { X: 0, O: 0, draw: 0 },
+            restartRequest: null,
+            spectators: {},
+            chat: {}
         };
 
         database.ref('games/' + currentGameId).set(gameData)
@@ -879,9 +1098,12 @@
                 document.getElementById('current-game-id').textContent = currentGameId;
                 document.getElementById('player-x-name').textContent = hostName;
                 document.getElementById('player-o-name').textContent = 'Várakozás...';
+                document.getElementById('player-x-score-label').textContent = hostName;
                 document.getElementById('game-status').textContent = 'Várakozás második játékosra...';
 
                 setupGameListeners();
+                setupChatListeners();
+                setupSpectatorListeners();
 
                 showScreen(screens.gameScreen);
             })
@@ -906,7 +1128,6 @@
         }
 
         playerName = guestName;
-        playerRole = 'guest';
         currentGameId = gameId;
 
         database.ref('games/' + gameId).once('value')
@@ -915,9 +1136,21 @@
                     const gameData = snapshot.val();
 
                     if (gameData.status === 'playing' || gameData.status === 'ended') {
-                        showNotification('Ez a játék már folyamatban van vagy befejeződött!', false);
+                        if (gameData.playerX && gameData.playerO) {
+                            // Szoba megtelt, nézőként csatlakozunk
+                            joinAsSpectator(gameId, guestName);
+                            return;
+                        }
+                    }
+
+                    if (gameData.playerO) {
+                        // Szoba megtelt, nézőként csatlakozunk
+                        joinAsSpectator(gameId, guestName);
                         return;
                     }
+
+                    playerRole = 'guest';
+                    playerMark = 'O';
 
                     database.ref('games/' + gameId).update({
                         playerO: guestName,
@@ -927,9 +1160,18 @@
                             document.getElementById('current-game-id').textContent = currentGameId;
                             document.getElementById('player-x-name').textContent = gameData.playerX;
                             document.getElementById('player-o-name').textContent = guestName;
+                            document.getElementById('player-o-score-label').textContent = guestName;
                             document.getElementById('game-status').textContent = 'A játék elindult! Az X játékos kezd.';
 
+                            // Scoreboard frissítése
+                            if (gameData.scores) {
+                                scores = gameData.scores;
+                                updateScoreboard();
+                            }
+
                             setupGameListeners();
+                            setupChatListeners();
+                            setupSpectatorListeners();
 
                             showScreen(screens.gameScreen);
                         });
@@ -939,13 +1181,141 @@
             });
     }
 
+    function joinAsSpectator(gameId, spectatorName) {
+        playerRole = 'spectator';
+        isSpectator = true;
+        spectatorId = Math.random().toString(36).substring(2, 9);
+
+        database.ref('games/' + gameId + '/spectators/' + spectatorId).set({
+            name: spectatorName,
+            joinedAt: Date.now()
+        });
+
+        document.getElementById('current-game-id').textContent = gameId;
+        document.getElementById('player-x-name').textContent = 'X Játékos';
+        document.getElementById('player-o-name').textContent = 'O Játékos';
+
+        // Scoreboard elrejtése nézőknek
+        document.getElementById('score-board').style.display = 'none';
+
+        // Játéktábla letiltása nézőknek
+        document.querySelectorAll('.cell').forEach(cell => {
+            cell.style.cursor = 'default';
+        });
+
+        setupGameListeners();
+        setupChatListeners();
+        setupSpectatorListeners();
+
+        showScreen(screens.gameScreen);
+        showNotification('Csatlakoztál nézőként!', true);
+    }
+
+    function setupSpectatorListeners() {
+        if (!currentGameId) return;
+
+        const spectatorsRef = database.ref('games/' + currentGameId + '/spectators');
+
+        spectatorsRef.on('value', snapshot => {
+            const spectators = snapshot.val() || {};
+            const spectatorCount = Object.keys(spectators).length;
+            document.getElementById('spectators-count').textContent = spectatorCount;
+        });
+    }
+
+    function setupChatListeners() {
+        if (!currentGameId) return;
+
+        const chatRef = database.ref('games/' + currentGameId + '/chat');
+
+        chatRef.limitToLast(20).on('child_added', snapshot => {
+            const message = snapshot.val();
+            addChatMessage(message);
+        });
+    }
+
+    function addChatMessage(message) {
+        const chatMessages = document.getElementById('chat-messages');
+        const messageElement = document.createElement('div');
+
+        messageElement.classList.add('chat-message');
+        if (message.type === 'system') {
+            messageElement.classList.add('system');
+        } else if (message.sender === 'spectator') {
+            messageElement.classList.add('spectator');
+        }
+
+        let senderName = message.sender;
+        if (message.sender === 'X') {
+            senderName = latestGameData.playerX;
+        } else if (message.sender === 'O') {
+            senderName = latestGameData.playerO;
+        }
+
+        if (message.type === 'emote') {
+            messageElement.innerHTML = `<strong>${senderName}:</strong> ${message.text}`;
+        } else {
+            messageElement.innerHTML = `<strong>${senderName}:</strong> ${message.text}`;
+        }
+
+        chatMessages.appendChild(messageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function sendChatMessage() {
+        if (!currentGameId || isSpectator) return;
+
+        const chatInput = document.getElementById('chat-input');
+        const message = chatInput.value.trim();
+
+        if (message) {
+            const chatRef = database.ref('games/' + currentGameId + '/chat');
+            chatRef.push({
+                sender: playerMark,
+                text: message,
+                timestamp: Date.now(),
+                type: 'text'
+            });
+
+            chatInput.value = '';
+        }
+    }
+
+    function sendEmote(emote) {
+        if (!currentGameId) return;
+
+        const chatRef = database.ref('games/' + currentGameId + '/chat');
+
+        if (isSpectator) {
+            chatRef.push({
+                sender: 'spectator',
+                text: emote,
+                timestamp: Date.now(),
+                type: 'emote'
+            });
+        } else {
+            chatRef.push({
+                sender: playerMark,
+                text: emote,
+                timestamp: Date.now(),
+                type: 'emote'
+            });
+        }
+    }
+
     function startBotGame() {
         currentGameId = Math.floor(100000 + Math.random() * 900000).toString();
 
         document.getElementById('current-game-id').textContent = currentGameId;
         document.getElementById('player-x-name').textContent = playerName;
         document.getElementById('player-o-name').textContent = 'Bot (' + botDifficulty + ')';
+        document.getElementById('player-x-score-label').textContent = playerName;
+        document.getElementById('player-o-score-label').textContent = 'Bot (' + botDifficulty + ')';
         document.getElementById('game-status').textContent = 'A játék elindult! Te kezdesz (X).';
+
+        // Elrejtjük a chat és néző részt bot módban
+        document.querySelector('.chat-container').style.display = 'none';
+        document.querySelector('.spectators-container').style.display = 'none';
 
         boardState = ['', '', '', '', '', '', '', '', ''];
         currentPlayer = 'X';
@@ -965,7 +1335,13 @@
         document.getElementById('game-id-container').style.display = 'none';
         document.getElementById('player-x-name').textContent = player1Name;
         document.getElementById('player-o-name').textContent = player2Name;
+        document.getElementById('player-x-score-label').textContent = player1Name;
+        document.getElementById('player-o-score-label').textContent = player2Name;
         document.getElementById('game-status').textContent = 'A játék elindult! ' + player1Name + ' (X) kezd.';
+
+        // Elrejtjük a chat és néző részt helyi játékmódban
+        document.querySelector('.chat-container').style.display = 'none';
+        document.querySelector('.spectators-container').style.display = 'none';
 
         boardState = ['', '', '', '', '', '', '', '', ''];
         currentPlayer = 'X';
@@ -989,12 +1365,15 @@
     }
 
     function setupGameListeners() {
+        if (!currentGameId) return;
+
         const gameRef = database.ref('games/' + currentGameId);
 
         gameRef.on('value', snapshot => {
             const gameData = snapshot.val();
             if (!gameData) return;
 
+            latestGameData = gameData;
             boardState = gameData.board;
             currentPlayer = gameData.currentPlayer;
             gameActive = gameData.status === 'playing';
@@ -1025,6 +1404,15 @@
                 }
             }
 
+            // Scoreboard frissítése
+            if (gameData.scores) {
+                scores = gameData.scores;
+                updateScoreboard();
+            }
+
+            // Újraindítási kérés kezelése
+            handleRestartRequest(gameData);
+
             updateBoard();
 
             if (gameActive && gameMode === 'pvb' && currentPlayer === 'O' && playerRole === 'host') {
@@ -1035,6 +1423,103 @@
         setupBoardEventListeners();
     }
 
+    function updateScoreboard() {
+        document.getElementById('player-x-score').textContent = scores.X;
+        document.getElementById('player-o-score').textContent = scores.O;
+        document.getElementById('draw-score').textContent = scores.draw;
+    }
+
+    function handleRestartRequest(gameData) {
+        const restartRequestContainer = document.getElementById('restart-request-container');
+        const restartRequestText = document.getElementById('restart-request-text');
+
+        if (gameData.restartRequest) {
+            if (gameData.restartRequest.player === playerMark) {
+                // Mi küldtük a kérést
+                restartRequestText.textContent = 'Várakozás a másik játékos válaszára...';
+                restartRequestContainer.style.display = 'flex';
+                document.getElementById('accept-restart').style.display = 'none';
+                document.getElementById('decline-restart').style.display = 'none';
+            } else {
+                // A másik játékos küldte a kérést
+                restartRequestText.textContent = `${gameData.restartRequest.player === 'X' ? gameData.playerX : gameData.playerO} új játékot kezdeményezett.`;
+                restartRequestContainer.style.display = 'flex';
+                document.getElementById('accept-restart').style.display = 'inline-block';
+                document.getElementById('decline-restart').style.display = 'inline-block';
+            }
+        } else {
+            restartRequestContainer.style.display = 'none';
+        }
+    }
+
+    function requestRestartGame() {
+        if (!currentGameId || isSpectator) return;
+
+        if (gameMode === 'pvp') {
+            database.ref('games/' + currentGameId).update({
+                restartRequest: {
+                    player: playerMark,
+                    timestamp: Date.now()
+                }
+            });
+        } else {
+            // Bot vagy helyi játékmód - azonnal újraindul
+            restartGame();
+        }
+    }
+
+    function acceptRestart() {
+        if (!currentGameId || isSpectator) return;
+
+        // Eltávolítjuk a kérést és újraindítjuk a játékot
+        database.ref('games/' + currentGameId).update({
+            restartRequest: null
+        });
+
+        restartGame();
+    }
+
+    function declineRestart() {
+        if (!currentGameId || isSpectator) return;
+
+        // Eltávolítjuk a kérést
+        database.ref('games/' + currentGameId).update({
+            restartRequest: null
+        });
+    }
+
+    function restartGame() {
+        resetPlayerHighlights();
+        winningCombo = null;
+        boardState = ['', '', '', '', '', '', '', '', ''];
+        currentPlayer = 'X';
+        gameActive = true;
+
+        if (gameMode === 'pvp') {
+            database.ref('games/' + currentGameId).update({
+                board: boardState,
+                currentPlayer: 'X',
+                status: 'playing',
+                winner: null,
+                winningCombo: null,
+                restartRequest: null
+            });
+            document.getElementById('game-status').textContent = 'Játék újraindítva! Az X játékos kezd.';
+        }
+        else if (gameMode === 'pvb') {
+            document.getElementById('game-status').textContent = 'A játék elindult! Te kezdesz (X).';
+            document.getElementById('player-x').classList.add('active');
+            document.getElementById('player-o').classList.remove('active');
+        }
+        else if (gameMode === 'local') {
+            document.getElementById('game-status').textContent = 'A játék elindult! ' + player1Name + ' (X) kezd.';
+            document.getElementById('player-x').classList.add('active');
+            document.getElementById('player-o').classList.remove('active');
+        }
+
+        updateBoard();
+    }
+
     function setupBoardEventListeners() {
         document.querySelectorAll('.cell').forEach(cell => {
             cell.removeEventListener('click', handleCellClick);
@@ -1043,7 +1528,7 @@
     }
 
     function handleCellClick(event) {
-        if (!gameActive) return;
+        if (!gameActive || isSpectator) return;
 
         const index = parseInt(event.target.dataset.index);
 
@@ -1070,13 +1555,31 @@
             const winner = result ? result.winner : (status === 'ended' ? 'draw' : null);
             const winningCombo = result ? result.combo : null;
 
+            // Score frissítése
+            let newScores = {...scores};
+            if (winner === 'X') newScores.X++;
+            else if (winner === 'O') newScores.O++;
+            else if (winner === 'draw') newScores.draw++;
+
             database.ref('games/' + currentGameId).update({
                 board: newBoard,
                 currentPlayer: nextPlayer,
                 status: status,
                 winner: winner,
-                winningCombo: winningCombo
+                winningCombo: winningCombo,
+                scores: newScores
             });
+
+            // Rendszerüzenet küldése
+            if (result) {
+                const chatRef = database.ref('games/' + currentGameId + '/chat');
+                chatRef.push({
+                    sender: 'system',
+                    text: winner === 'draw' ? 'Döntetlen!' : `${winner === 'X' ? latestGameData.playerX : latestGameData.playerO} nyert a körben!`,
+                    timestamp: Date.now(),
+                    type: 'system'
+                });
+            }
         } else if (gameMode === 'pvb') {
             boardState[index] = currentPlayer;
 
@@ -1087,16 +1590,20 @@
 
                 if (result.winner === 'draw') {
                     document.getElementById('game-status').textContent = 'Döntetlen!';
+                    scores.draw++;
                 } else {
                     document.getElementById('game-status').textContent =
                         result.winner === 'X' ? `${playerName} (X) nyert!` : 'Bot nyert!';
 
                     if (result.winner === 'X') {
                         document.getElementById('player-x').classList.add('winner');
+                        scores.X++;
                     } else {
                         document.getElementById('player-o').classList.add('winner');
+                        scores.O++;
                     }
                 }
+                updateScoreboard();
                 updateBoard();
             } else {
                 currentPlayer = 'O';
@@ -1118,16 +1625,20 @@
 
                 if (result.winner === 'draw') {
                     document.getElementById('game-status').textContent = 'Döntetlen!';
+                    scores.draw++;
                 } else {
                     const winnerName = result.winner === 'X' ? player1Name : player2Name;
                     document.getElementById('game-status').textContent = `${winnerName} (${result.winner}) nyert!`;
 
                     if (result.winner === 'X') {
                         document.getElementById('player-x').classList.add('winner');
+                        scores.X++;
                     } else {
                         document.getElementById('player-o').classList.add('winner');
+                        scores.O++;
                     }
                 }
+                updateScoreboard();
                 updateBoard();
             } else {
                 currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
@@ -1170,16 +1681,20 @@
 
             if (result.winner === 'draw') {
                 document.getElementById('game-status').textContent = 'Döntetlen!';
+                scores.draw++;
             } else {
                 document.getElementById('game-status').textContent =
                     result.winner === 'O' ? 'Bot nyert!' : `${playerName} (${result.winner}) nyert!`;
 
                 if (result.winner === 'X') {
                     document.getElementById('player-x').classList.add('winner');
+                    scores.X++;
                 } else {
                     document.getElementById('player-o').classList.add('winner');
+                    scores.O++;
                 }
             }
+            updateScoreboard();
         } else {
             currentPlayer = 'X';
             document.getElementById('game-status').textContent = `Te következel (${playerName})`;
@@ -1316,50 +1831,32 @@
         });
     }
 
-    function restartGame() {
-        resetPlayerHighlights();
-        winningCombo = null;
-        boardState = ['', '', '', '', '', '', '', '', ''];
-        currentPlayer = 'X';
-        gameActive = true;
-
-        if (gameMode === 'pvp') {
-            database.ref('games/' + currentGameId).update({
-                board: boardState,
-                currentPlayer: 'X',
-                status: 'playing',
-                winner: null,
-                winningCombo: null
-            });
-            document.getElementById('game-status').textContent = 'Játék újraindítva! Az X játékos kezd.';
-        }
-        else if (gameMode === 'pvb') {
-            document.getElementById('game-status').textContent = 'A játék elindult! Te kezdesz (X).';
-            document.getElementById('player-x').classList.add('active');
-            document.getElementById('player-o').classList.remove('active');
-        }
-        else if (gameMode === 'local') {
-            document.getElementById('game-status').textContent = 'A játék elindult! ' + player1Name + ' (X) kezd.';
-            document.getElementById('player-x').classList.add('active');
-            document.getElementById('player-o').classList.remove('active');
-        }
-
-        updateBoard();
-    }
-
     function leaveGame() {
         if (gameMode === 'pvp' && currentGameId) {
-            database.ref('games/' + currentGameId).remove();
+            if (isSpectator) {
+                // Nézőt eltávolítjuk
+                database.ref('games/' + currentGameId + '/spectators/' + spectatorId).remove();
+            } else {
+                // Játékos kilép - játék vége
+                database.ref('games/' + currentGameId).remove();
+            }
         }
 
         currentGameId = null;
         boardState = ['', '', '', '', '', '', '', '', ''];
         gameActive = false;
         winningCombo = null;
+        isSpectator = false;
 
         resetPlayerHighlights();
 
         document.getElementById('game-id-container').style.display = 'flex';
+        document.getElementById('score-board').style.display = 'flex';
+        document.querySelector('.chat-container').style.display = 'block';
+        document.querySelector('.spectators-container').style.display = 'flex';
+
+        // Chat üzenetek törlése
+        document.getElementById('chat-messages').innerHTML = '';
 
         showScreen(screens.mainMenu);
     }
