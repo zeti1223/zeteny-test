@@ -2,492 +2,131 @@
 <html lang="hu">
 <head>
     <meta charset="UTF-8">
-    <title>Tutorial Kezelő</title>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Játékok - Teszdeld le ezeket!</title>
     <style>
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a2a6c, #2c3e50);
-            padding: 1rem;
-            min-height: 100vh;
-            position: relative;
-            overflow-x: hidden;
+            background-color: #f5f5f5;
             color: #333;
+            line-height: 1.6;
+            padding: 20px;
         }
 
-        body::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 200px;
-            background: linear-gradient(135deg, #6a11cb, #2575fc);
-            z-index: -1;
-            border-radius: 0 0 30% 30%;
-        }
-
-        /* Lebegő műveleti gomb (FAB) */
-        .fab {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #ff6b6b, #ff8e53);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-            z-index: 1000;
-            transition: all 0.3s ease;
-            font-size: 1.2rem;
-        }
-
-        .fab:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
-        }
-
-        /* Tartalom stílusok */
         .container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
-            background-color: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            padding: 1.5rem;
-            position: relative;
-            margin-top: 30px;
         }
 
-        .header {
+        header {
             text-align: center;
-            margin-bottom: 1.5rem;
-            padding-top: 1rem;
+            margin-bottom: 40px;
+            padding: 20px 0;
         }
 
         h1 {
-            color: #2c3e50;
+            font-size: 2.5rem;
+            color: #222;
+            margin-bottom: 10px;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+        }
+
+        .game-card {
+            background-color: #e0e0e0; /* Világoszürke háttér */
+            border-radius: 12px;
+            padding: 25px 20px;
             text-align: center;
-            margin-top: 0;
-            font-size: 1.8rem;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            margin-bottom: 1.5rem;
-        }
-
-        .header::after {
-            content: "";
-            display: block;
-            width: 100px;
-            height: 4px;
-            background: linear-gradient(to right, #ff6b6b, #3498db);
-            margin: 15px auto;
-            border-radius: 2px;
-        }
-
-        .input-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 1.5rem;
-        }
-
-        input {
-            flex: 1;
-            min-width: 120px;
-            padding: 12px 15px;
-            border: 2px solid #e1e5eb;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            transition: all 0.3s;
-        }
-
-        input:focus {
-            border-color: #3498db;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-        }
-
-        button {
-            background: linear-gradient(135deg, #3498db, #2c3e50);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             display: flex;
-            align-items: center;
+            flex-direction: column;
             justify-content: center;
-            gap: 8px;
-        }
-
-        button:hover {
-            background: linear-gradient(135deg, #2c3e50, #3498db);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        button:active {
-            transform: translateY(1px);
-        }
-
-        ul {
-            margin-top: 1.5rem;
-            list-style: none;
-            padding-left: 0;
-        }
-
-        li {
-            margin-bottom: 0.75rem;
-            background-color: #fff;
-            padding: 1rem;
-            border-radius: 10px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s ease;
-            border-left: 4px solid #3498db;
-            display: flex;
-            justify-content: space-between;
             align-items: center;
-            position: relative;
-            overflow: hidden;
+            min-height: 180px;
         }
 
-        li:hover {
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
-            transform: translateY(-3px);
-            border-left: 4px solid #ff6b6b;
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            background-color: #d5d5d5;
         }
 
-        .link-content {
-            flex: 1;
-            min-width: 0; /* Engedjük a szövegtörést */
+        .game-card:active {
+            transform: translateY(2px);
         }
 
-        .link-title {
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 5px;
-            word-break: break-word;
+        .game-card h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 15px;
         }
 
-        .link-url {
-            color: #3498db;
-            font-size: 0.9rem;
-            display: block;
-            text-overflow: ellipsis;
-            overflow: hidden;
-            white-space: nowrap;
-            max-width: 100%;
+        /* Reszponzív design */
+        @media (max-width: 1024px) {
+            .games-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
-        .link-url:hover {
-            color: #ff6b6b;
-            text-decoration: underline;
-        }
-
-        .link-actions {
-            display: flex;
-            gap: 10px;
-            margin-left: 10px;
-        }
-
-        .action-btn {
-            background: transparent;
-            border: none;
-            color: #7f8c8d;
-            cursor: pointer;
-            font-size: 1.1rem;
-            transition: all 0.2s;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .action-btn:hover {
-            background: #f5f5f5;
-            color: #ff6b6b;
-        }
-
-        /* Lábléc stílus */
-        footer {
-            text-align: center;
-            margin-top: 2rem;
-            padding: 1rem;
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.9rem;
-        }
-
-        /* Reszponzív stílusok */
         @media (max-width: 600px) {
-            body {
-                padding: 0.75rem;
-            }
-
-            body::before {
-                height: 150px;
-                border-radius: 0 0 25% 25%;
-            }
-
-            .container {
-                padding: 1.2rem;
-                margin-top: 25px;
+            .games-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
             }
 
             h1 {
-                font-size: 1.5rem;
-                margin-bottom: 1rem;
+                font-size: 2rem;
             }
 
-            .input-group {
-                flex-direction: column;
-                gap: 8px;
+            .game-card {
+                padding: 20px 15px;
+                min-height: 120px;
             }
 
-            input, button {
-                width: 100%;
-                margin-bottom: 0;
-                padding: 12px;
+            .game-card h2 {
+                font-size: 1.3rem;
             }
-
-            .link-actions {
-                display: none;
-            }
-
-            button {
-                margin-top: 5px;
-            }
-
-            li {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 1rem;
-            }
-
-            .link-content {
-                width: 100%;
-                margin-bottom: 10px;
-            }
-
-            .link-actions {
-                align-self: flex-end;
-                margin-left: 0;
-            }
-
-            .fab {
-                bottom: 20px;
-                right: 20px;
-                width: 56px;
-                height: 56px;
-                font-size: 1.1rem;
-            }
-        }
-
-        @media (max-width: 400px) {
-            .container {
-                padding: 1rem;
-            }
-
-            h1 {
-                font-size: 1.4rem;
-            }
-
-            .fab {
-                width: 50px;
-                height: 50px;
-                font-size: 1rem;
-                bottom: 15px;
-                right: 15px;
-            }
-
-            .action-btn {
-                width: 32px;
-                height: 32px;
-                font-size: 1rem;
-            }
-        }
-
-        /* Fade-in animáció új elemekhez */
-        .fade-in {
-            animation: fadeIn 0.6s;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Üres lista stílus */
-        .empty-state {
-            text-align: center;
-            padding: 2rem;
-            color: #7f8c8d;
-            font-style: italic;
-        }
-
-        .empty-state i {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: #bdc3c7;
         }
     </style>
 </head>
 <body>
-<!-- Lebegő műveleti gomb telefonon -->
-<div class="fab" onclick="window.location.href='tic-tac-toe.html'">
-    <i class="fas fa-gamepad"></i>
-</div>
-
 <div class="container">
-    <div class="header">
-        <h1><i class="fas fa-book-open"></i> Kedvenc Tutorial Oldalaim</h1>
+    <header>
+        <h1>Teszdeld le ezeket!</h1>
+    </header>
+
+    <div class="games-grid">
+        <div class="game-card" onclick="window.location.href = 'tic-tac-toe.html';">
+            <h2>Tic Tac Toe</h2>
+        </div>
+
+        <!--<div class="game-card" onclick="window.location.href = 'index.html';">
+            <h2>Flappy Bird</h2>
+        </div>-->
     </div>
-
-    <div class="input-group">
-        <input type="text" id="titleInput" placeholder="Cím pl. JS kezdőknek">
-        <input type="url" id="urlInput" placeholder="https://valami.hu">
-        <button onclick="addFavorite()">
-            <i class="fas fa-plus"></i> Hozzáadás
-        </button>
-    </div>
-
-    <ul id="favoritesList">
-        <!-- Elemek dinamikusan jönnek ide -->
-    </ul>
-
-    <footer>
-        <p>Kedvenc tutorial oldalaidat könnyedén kezelheted!</p>
-    </footer>
 </div>
 
 <script>
-    // Firebase konfiguráció
-    const firebaseConfig = {
-        apiKey: "AIzaSyDn1OTmejSt3k705cFoNFVaN0lX-t0sxlo",
-        authDomain: "zeteny-test.firebaseapp.com",
-        databaseURL: "https://zeteny-test-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "zeteny-test",
-        storageBucket: "zeteny-test.firebasestorage.app",
-        messagingSenderId: "1048302485508",
-        appId: "1:1048302485508:web:15f9180a68b97faee97551",
-        measurementId: "G-E3H84LKM0D"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const dbRef = db.ref("favorites");
-
-    const titleInput = document.getElementById("titleInput");
-    const urlInput = document.getElementById("urlInput");
-    const favoritesList = document.getElementById("favoritesList");
-
-    function addFavorite() {
-        const title = titleInput.value.trim();
-        const url = urlInput.value.trim();
-
-        if (!title || !url) {
-            alert("Ne legyél már lusta, töltsd ki mindkettőt!");
-            return;
-        }
-
-        // URL ellenőrzés
-        try {
-            new URL(url);
-        } catch (e) {
-            alert("Hibás URL formátum! Példa: https://example.com");
-            return;
-        }
-
-        const newFavorite = {
-            title,
-            url,
-            timestamp: Date.now()
-        };
-
-        dbRef.push(newFavorite);
-        titleInput.value = "";
-        urlInput.value = "";
-        titleInput.focus();
-    }
-
-    function loadFavorites() {
-        dbRef.on("value", (snapshot) => {
-            favoritesList.innerHTML = "";
-            const data = snapshot.val();
-
-            if (data) {
-                // Rendezés időbélyeg szerint (legújabb elöl)
-                const sortedEntries = Object.entries(data).sort((a, b) =>
-                    b[1].timestamp - a[1].timestamp
-                );
-
-                sortedEntries.forEach(([id, { title, url }]) => {
-                    const li = document.createElement("li");
-                    li.classList.add("fade-in");
-
-                    li.innerHTML = `
-                        <div class="link-content">
-                            <div class="link-title">${title}</div>
-                            <a href="${url}" target="_blank" class="link-url">${url}</a>
-                        </div>
-                        <div class="link-actions">
-                            <button class="action-btn" onclick="window.open('${url}', '_blank')">
-                                <i class="fas fa-external-link-alt"></i>
-                            </button>
-                        </div>
-                    `;
-
-                    favoritesList.appendChild(li);
-                });
-            } else {
-                favoritesList.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-book"></i>
-                        <p>Még nincsenek tutorialok hozzáadva.</p>
-                        <p>Kezdd el a gyűjteményed fölépítését!</p>
-                    </div>
-                `;
-            }
+    // Egyszerű kattintáskezelés
+    document.querySelectorAll('.game-card').forEach(card => {
+        card.addEventListener('click', function() {
+            this.style.backgroundColor = '#c8c8c8';
+            setTimeout(() => {
+                this.style.backgroundColor = '#e0e0e0';
+            }, 300);
         });
-    }
-
-    // Enter billentyű használata a hozzáadáshoz
-    titleInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") addFavorite();
-    });
-
-    urlInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") addFavorite();
-    });
-
-    // Oldal betöltésekor
-    document.addEventListener('DOMContentLoaded', () => {
-        loadFavorites();
-        titleInput.focus();
     });
 </script>
 </body>
