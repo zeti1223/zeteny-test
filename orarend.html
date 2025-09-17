@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Órarend Készítő</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+</head>
+<body class="bg-gray-100 text-gray-800 leading-relaxed font-sans">
+<div class="max-w-6xl mx-auto p-5">
+    <header class="text-center mb-8 p-6 bg-gradient-to-r from-purple-600 to-blue-500 text-white rounded-lg shadow-lg">
+        <h1 class="text-4xl font-bold mb-2">Órarend Készítő</h1>
+        <p class="text-lg opacity-90">Hozz létre és kezelj órarendeket egyszerűen</p>
+    </header>
+
+    <div class="flex flex-col md:flex-row bg-white rounded-lg overflow-hidden mb-6 shadow-md">
+        <div class="tab py-4 px-6 cursor-pointer flex-1 text-center transition-all duration-300 ease-in-out font-semibold flex items-center justify-center gap-2 bg-blue-500 text-white" data-tab="settings">
+            <i class="fas fa-cog"></i> Beállítások
+        </div>
+        <div class="tab py-4 px-6 cursor-pointer flex-1 text-center transition-all duration-300 ease-in-out font-semibold flex items-center justify-center gap-2 hover:bg-blue-50" data-tab="calendar">
+            <i class="fas fa-calendar-alt"></i> Naptár nézet
+        </div>
+        <div class="tab py-4 px-6 cursor-pointer flex-1 text-center transition-all duration-300 ease-in-out font-semibold flex items-center justify-center gap-2 hover:bg-blue-50" data-tab="add-lesson">
+            <i class="fas fa-plus-circle"></i> Óra hozzáadása
+        </div>
+    </div>
+
+    <div id="settings" class="tab-content block bg-white p-6 rounded-lg shadow-md mb-6">
+        <h2 class="text-2xl font-bold mb-4">Beállítások</h2>
+        <p class="mb-6">Itt állíthatod be az órák időpontjait és a tantermek nevét.</p>
+
+        <h3 class="text-xl font-semibold mb-4">Órarend időbeosztása</h3>
+        <div id="time-slots" class="mb-6">
+            <!-- Time slots will be generated here -->
+        </div>
+
+        <h3 class="text-xl font-semibold mb-4">Tantermek</h3>
+        <div class="mb-5">
+            <label for="classroom-name" class="block mb-2 font-semibold text-gray-700">Terem neve:</label>
+            <div class="flex gap-2">
+                <input
+                        type="text"
+                        id="classroom-name"
+                        placeholder="pl. 301-es terem"
+                        class="w-full p-3 border border-gray-300 rounded-md text-base"
+                />
+                <button id="add-classroom" class="bg-blue-500 text-white py-3 px-5 rounded-md cursor-pointer text-base font-semibold transition-colors duration-300 hover:bg-blue-600 whitespace-nowrap">
+                    Terem hozzáadása
+                </button>
+            </div>
+        </div>
+
+        <div id="classroom-list" class="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4 mt-4">
+            <!-- Classroom list will be generated here -->
+        </div>
+
+        <div class="flex gap-3 mt-6">
+            <button id="save-preset" class="bg-blue-500 text-white border-none py-3 px-5 rounded-md cursor-pointer text-base font-semibold transition-colors duration-300 hover:bg-blue-600">Beállítások mentése</button>
+            <button id="load-preset" class="bg-gray-500 text-white border-none py-3 px-5 rounded-md cursor-pointer text-base font-semibold transition-colors duration-300 hover:bg-gray-600">Beállítások betöltése</button>
+        </div>
+    </div>
+
+    <div id="calendar" class="tab-content hidden bg-white p-6 rounded-lg shadow-md mb-6">
+        <h2 class="text-2xl font-bold mb-4">Órarend nézet</h2>
+        <p class="mb-6">Itt láthatod a teljes órarendet naptár nézetben.</p>
+
+        <div class="calendar grid grid-cols-[60px_repeat(5,1fr)] md:grid-cols-[100px_repeat(5,1fr)] gap-px bg-gray-300 rounded-lg overflow-hidden">
+            <div class="bg-blue-500 text-white p-2 md:p-4 text-center font-semibold text-sm md:text-base">Idő</div>
+            <div class="bg-blue-500 text-white p-2 md:p-4 text-center font-semibold text-sm md:text-base">Hétfő</div>
+            <div class="bg-blue-500 text-white p-2 md:p-4 text-center font-semibold text-sm md:text-base">Kedd</div>
+            <div class="bg-blue-500 text-white p-2 md:p-4 text-center font-semibold text-sm md:text-base">Szerda</div>
+            <div class="bg-blue-500 text-white p-2 md:p-4 text-center font-semibold text-sm md:text-base">Csütörtök</div>
+            <div class="bg-blue-500 text-white p-2 md:p-4 text-center font-semibold text-sm md:text-base">Péntek</div>
+            <!-- Calendar content will be generated here -->
+        </div>
+    </div>
+
+    <div id="add-lesson" class="tab-content hidden bg-white p-6 rounded-lg shadow-md mb-6">
+        <h2 class="text-2xl font-bold mb-4">Óra hozzáadása</h2>
+        <p class="mb-6">Itt adhatsz hozzá új tanórákat az órarendhez.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="mb-5">
+                <label for="lesson-name" class="block mb-2 font-semibold text-gray-700">Óra neve:</label>
+                <input type="text" id="lesson-name" placeholder="pl. Matematika" class="w-full p-3 border border-gray-300 rounded-md text-base"/>
+            </div>
+
+            <div class="mb-5">
+                <label for="lesson-classroom" class="block mb-2 font-semibold text-gray-700">Terem:</label>
+                <select id="lesson-classroom" class="w-full p-3 border border-gray-300 rounded-md text-base">
+                    <option value="">Válassz termet</option>
+                </select>
+            </div>
+
+            <div class="mb-5">
+                <label for="lesson-time" class="block mb-2 font-semibold text-gray-700">Óra sorszáma:</label>
+                <select id="lesson-time" class="w-full p-3 border border-gray-300 rounded-md text-base">
+                    <option value="">Válassz órát</option>
+                </select>
+            </div>
+
+            <div class="mb-5">
+                <label for="lesson-day" class="block mb-2 font-semibold text-gray-700">Nap:</label>
+                <select id="lesson-day" class="w-full p-3 border border-gray-300 rounded-md text-base">
+                    <option value="1">Hétfő</option>
+                    <option value="2">Kedd</option>
+                    <option value="3">Szerda</option>
+                    <option value="4">Csütörtök</option>
+                    <option value="5">Péntek</option>
+                </select>
+            </div>
+        </div>
+
+        <button id="add-lesson-btn" class="w-full md:w-auto bg-blue-500 text-white border-none py-3 px-5 rounded-md cursor-pointer text-base font-semibold transition-colors duration-300 hover:bg-blue-600">Óra hozzáadása</button>
+    </div>
+
+    <div class="flex justify-between mt-8">
+        <button id="clear-data" class="bg-red-500 text-white border-none py-3 px-5 rounded-md cursor-pointer text-base font-semibold transition-colors duration-300 hover:bg-red-600">Adatok törlése</button>
+        <button class="bg-green-600 text-white border-none py-3 px-5 rounded-md cursor-pointer text-base font-semibold transition-colors duration-300 hover:bg-green-700" id="export-ics">
+            Exportálás .ics fájlba
+        </button>
+    </div>
+
+    <div class="fixed top-5 right-5 py-4 px-5 bg-green-600 text-white rounded-lg shadow-lg hidden z-50" id="notification">
+        Beállítások sikeresen elmentve!
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Initialize the application
+        initTimeSlots();
+        initClassrooms();
+        initLessonTimes();
+        updateCalendar();
+
+        // Tab switching functionality
+        const tabs = document.querySelectorAll(".tab");
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach((tab) => {
+            tab.addEventListener("click", () => {
+                // Deactivate all tabs
+                tabs.forEach((t) => {
+                    t.classList.remove("bg-blue-500", "text-white");
+                    t.classList.add("hover:bg-blue-50");
+                });
+                // Deactivate all content
+                tabContents.forEach((c) => {
+                    c.classList.remove("block");
+                    c.classList.add("hidden");
+                });
+
+                // Activate clicked tab
+                tab.classList.add("bg-blue-500", "text-white");
+                tab.classList.remove("hover:bg-blue-50");
+
+                // Activate corresponding content
+                const content = document.getElementById(tab.dataset.tab);
+                content.classList.remove("hidden");
+                content.classList.add("block");
+            });
+        });
+
+        // Add classroom functionality
+        document
+            .getElementById("add-classroom")
+            .addEventListener("click", () => {
+                const classroomName = document
+                    .getElementById("classroom-name")
+                    .value.trim();
+                if (classroomName) {
+                    addClassroom(classroomName);
+                    document.getElementById("classroom-name").value = "";
+                }
+            });
+
+        // Add lesson functionality
+        document
+            .getElementById("add-lesson-btn")
+            .addEventListener("click", () => {
+                const name = document.getElementById("lesson-name").value.trim();
+                const classroom = document.getElementById("lesson-classroom").value;
+                const time = document.getElementById("lesson-time").value;
+                const day = document.getElementById("lesson-day").value;
+
+                if (name && classroom && time && day) {
+                    addLesson(name, classroom, time, day);
+                    updateCalendar();
+                    document.getElementById("lesson-name").value = "";
+                    showNotification("Óra sikeresen hozzáadva!");
+                } else {
+                    showNotification("Kérlek tölts ki minden mezőt!", true);
+                }
+            });
+
+        // Save preset functionality
+        document.getElementById("save-preset").addEventListener("click", () => {
+            savePreset();
+            showNotification("Beállítások sikeresen elmentve!");
+        });
+
+        // Load preset functionality
+        document.getElementById("load-preset").addEventListener("click", () => {
+            loadPreset();
+            showNotification("Beállítások sikeresen betöltve!");
+        });
+
+        // Export functionality
+        document.getElementById("export-ics").addEventListener("click", () => {
+            exportToICS();
+            showNotification("Órarend exportálva .ics fájlba!");
+        });
+
+        // Clear data functionality
+        document.getElementById("clear-data").addEventListener("click", () => {
+            if (confirm("Biztosan törölni szeretnéd az összes adatot?")) {
+                clearData();
+                showNotification("Minden adat törölve!");
+            }
+        });
+    });
+
+    // Initialize time slots
+    function initTimeSlots() {
+        const timeSlotsContainer = document.getElementById("time-slots");
+        timeSlotsContainer.innerHTML = "";
+
+        for (let i = 1; i <= 8; i++) {
+            const timeSlot = document.createElement("div");
+            timeSlot.className = "flex items-center mb-3 p-3 bg-gray-50 rounded-lg gap-2";
+            timeSlot.innerHTML = `
+                <strong class="w-20">${i}. óra:</strong>
+                <input type="time" id="start-time-${i}" value="${getDefaultStartTime(i)}" class="w-full p-2 border border-gray-300 rounded-md">
+                <span>-</span>
+                <input type="time" id="end-time-${i}" value="${getDefaultEndTime(i)}" class="w-full p-2 border border-gray-300 rounded-md">
+            `;
+            timeSlotsContainer.appendChild(timeSlot);
+        }
+    }
+
+    // Get default start time for a lesson
+    function getDefaultStartTime(lessonNumber) {
+        const startHour = 7 + lessonNumber;
+        return `${startHour < 10 ? "0" + startHour : startHour}:00`;
+    }
+
+    // Get default end time for a lesson
+    function getDefaultEndTime(lessonNumber) {
+        const startHour = 7 + lessonNumber;
+        return `${startHour < 10 ? "0" + startHour : startHour}:45`;
+    }
+
+    // Initialize classrooms
+    function initClassrooms() {
+        const classrooms = JSON.parse(localStorage.getItem("classrooms")) || [
+            "101-es terem", "202-es terem", "303-as terem", "Tornaterem", "Kémiai labor",
+        ];
+        localStorage.setItem("classrooms", JSON.stringify(classrooms));
+        updateClassroomUI(classrooms);
+    }
+
+    // Add a new classroom
+    function addClassroom(name) {
+        const classrooms = JSON.parse(localStorage.getItem("classrooms")) || [];
+        if (!classrooms.includes(name)) {
+            classrooms.push(name);
+            localStorage.setItem("classrooms", JSON.stringify(classrooms));
+            updateClassroomUI(classrooms);
+            showNotification("Terem hozzáadva!");
+        } else {
+            showNotification("Ez a terem már létezik!", true);
+        }
+    }
+
+    // Update classroom UI
+    function updateClassroomUI(classrooms) {
+        const listElement = document.getElementById("classroom-list");
+        const selectElement = document.getElementById("lesson-classroom");
+
+        listElement.innerHTML = "";
+        classrooms.forEach((classroom) => {
+            const item = document.createElement("div");
+            item.className = "bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500 flex justify-between items-center";
+            item.textContent = classroom;
+            
+            const deleteBtn = document.createElement("button");
+            deleteBtn.innerHTML = '<i class="fas fa-trash-alt text-red-500 hover:text-red-700"></i>';
+            deleteBtn.onclick = () => deleteClassroom(classroom);
+            item.appendChild(deleteBtn);
+
+            listElement.appendChild(item);
+        });
+
+        selectElement.innerHTML = '<option value="">Válassz termet</option>';
+        classrooms.forEach((classroom) => {
+            const option = document.createElement("option");
+            option.value = classroom;
+            option.textContent = classroom;
+            selectElement.appendChild(option);
+        });
+    }
+    
+    function deleteClassroom(classroomName) {
+        let classrooms = JSON.parse(localStorage.getItem("classrooms")) || [];
+        classrooms = classrooms.filter(c => c !== classroomName);
+        localStorage.setItem("classrooms", JSON.stringify(classrooms));
+        updateClassroomUI(classrooms);
+        showNotification("Terem törölve!");
+    }
+
+    // Initialize lesson times
+    function initLessonTimes() {
+        const lessonTime = document.getElementById("lesson-time");
+        lessonTime.innerHTML = '<option value="">Válassz órát</option>';
+
+        for (let i = 1; i <= 8; i++) {
+            const option = document.createElement("option");
+            option.value = i;
+            option.textContent = `${i}. óra`;
+            lessonTime.appendChild(option);
+        }
+    }
+
+    // Add a new lesson
+    function addLesson(name, classroom, time, day) {
+        const lessons = JSON.parse(localStorage.getItem("lessons")) || {};
+        const key = `${day}-${time}`;
+
+        lessons[key] = { name, classroom, time, day };
+        localStorage.setItem("lessons", JSON.stringify(lessons));
+    }
+
+    // Update calendar view
+    function updateCalendar() {
+        const calendar = document.querySelector(".calendar");
+        const headers = Array.from(calendar.children).slice(0, 6);
+        calendar.innerHTML = "";
+        headers.forEach(header => calendar.appendChild(header));
+
+        for (let i = 1; i <= 8; i++) {
+            const timeCell = document.createElement("div");
+            timeCell.className = "bg-blue-50 text-center p-2 md:p-4 font-semibold text-xs md:text-sm flex items-center justify-center";
+            timeCell.textContent = `${i}. óra`;
+            calendar.appendChild(timeCell);
+
+            for (let j = 1; j <= 5; j++) {
+                const cell = document.createElement("div");
+                cell.className = "bg-white p-2 min-h-[80px] relative";
+                cell.id = `cell-${j}-${i}`;
+                calendar.appendChild(cell);
+            }
+        }
+
+        const lessons = JSON.parse(localStorage.getItem("lessons")) || {};
+        for (const key in lessons) {
+            const lesson = lessons[key];
+            const cell = document.getElementById(`cell-${lesson.day}-${lesson.time}`);
+
+            if (cell) {
+                const lessonElement = document.createElement("div");
+                lessonElement.className = "bg-green-100 p-2 rounded-md text-xs border-l-4 border-green-500";
+                lessonElement.innerHTML = `
+                    <h4 class="font-bold text-gray-800">${lesson.name}</h4>
+                    <p class="text-gray-600">${lesson.classroom}</p>
+                    <button class="absolute top-1 right-1 text-red-500 hover:text-red-700" onclick="deleteLesson('${key}')">
+                        <i class="fas fa-times-circle"></i>
+                    </button>
+                `;
+                cell.appendChild(lessonElement);
+            }
+        }
+    }
+    
+    function deleteLesson(lessonKey) {
+        if (confirm("Biztosan törölni szeretnéd ezt az órát?")) {
+            let lessons = JSON.parse(localStorage.getItem("lessons")) || {};
+            delete lessons[lessonKey];
+            localStorage.setItem("lessons", JSON.stringify(lessons));
+            updateCalendar();
+            showNotification("Óra törölve!");
+        }
+    }
+
+    // Save preset
+    function savePreset() {
+        const timeSlots = [];
+        for (let i = 1; i <= 8; i++) {
+            timeSlots.push({
+                lesson: i,
+                startTime: document.getElementById(`start-time-${i}`).value,
+                endTime: document.getElementById(`end-time-${i}`).value,
+            });
+        }
+        const preset = {
+            timeSlots,
+            classrooms: JSON.parse(localStorage.getItem("classrooms")) || [],
+            lessons: JSON.parse(localStorage.getItem("lessons")) || {},
+        };
+        localStorage.setItem("timetablePreset", JSON.stringify(preset));
+    }
+
+    // Load preset
+    function loadPreset() {
+        const preset = JSON.parse(localStorage.getItem("timetablePreset"));
+        if (preset) {
+            preset.timeSlots.forEach((slot) => {
+                const start = document.getElementById(`start-time-${slot.lesson}`);
+                const end = document.getElementById(`end-time-${slot.lesson}`);
+                if (start && end) {
+                    start.value = slot.startTime;
+                    end.value = slot.endTime;
+                }
+            });
+            localStorage.setItem("classrooms", JSON.stringify(preset.classrooms));
+            initClassrooms();
+            localStorage.setItem("lessons", JSON.stringify(preset.lessons));
+            updateCalendar();
+        } else {
+            showNotification("Nincs mentett beállítás!", true);
+        }
+    }
+
+    // Export to ICS
+    function exportToICS() {
+        console.log("Exporting to ICS file...");
+        showNotification("Az exportálás funkció fejlesztés alatt áll.");
+    }
+
+    // Clear all data
+    function clearData() {
+        localStorage.removeItem("classrooms");
+        localStorage.removeItem("lessons");
+        localStorage.removeItem("timetablePreset");
+        initClassrooms();
+        updateCalendar();
+    }
+
+    // Show notification
+    function showNotification(message, isError = false) {
+        const notification = document.getElementById("notification");
+        notification.textContent = message;
+        notification.classList.remove('hidden', 'bg-green-600', 'bg-red-600');
+        notification.classList.add(isError ? 'bg-red-600' : 'bg-green-600');
+        
+        setTimeout(() => {
+            notification.classList.add('hidden');
+        }, 3000);
+    }
+</script>
+</body>
+</html>
