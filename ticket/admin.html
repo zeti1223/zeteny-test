@@ -56,19 +56,6 @@
         color: #15803d;
         font-weight: 700;
       }
-      button {
-        background: #3b82f6;
-        color: white;
-        border: 0;
-        border-radius: 8px;
-        padding: 6px 10px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-      button:hover {
-        background: #2563eb;
-      }
       .container {
         max-width: 900px;
         margin: auto;
@@ -128,6 +115,19 @@
         justify-content: flex-end;
         gap: 10px;
       }
+      button {
+        background: #3b82f6;
+        color: white;
+        border: 0;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      button:hover {
+        background: #2563eb;
+      }
       .close-btn {
         background: #6b7280;
       }
@@ -143,14 +143,13 @@
         <thead>
           <tr>
             <th>Név</th>
-            <th>Probléma</th>
             <th>Dátum</th>
             <th>Státusz</th>
           </tr>
         </thead>
         <tbody id="ticketBody">
           <tr>
-            <td colspan="4" class="empty">Betöltés...</td>
+            <td colspan="3" class="empty">Betöltés...</td>
           </tr>
         </tbody>
       </table>
@@ -212,7 +211,7 @@
         tableBody.innerHTML = "";
 
         if (!data) {
-          tableBody.innerHTML = `<tr><td colspan="4" class="empty">Nincs ticket 🙌</td></tr>`;
+          tableBody.innerHTML = `<tr><td colspan="3" class="empty">Nincs ticket 🙌</td></tr>`;
           return;
         }
 
@@ -222,12 +221,6 @@
 
           const nameCell = document.createElement("td");
           nameCell.textContent = ticket.name || "—";
-
-          const problemCell = document.createElement("td");
-          problemCell.textContent =
-            ticket.problem.length > 40
-              ? ticket.problem.slice(0, 40) + "..."
-              : ticket.problem;
 
           const dateCell = document.createElement("td");
           const date = new Date(ticket.createdAt);
@@ -240,7 +233,6 @@
             status === "done" ? "status-done" : "status-open";
 
           row.appendChild(nameCell);
-          row.appendChild(problemCell);
           row.appendChild(dateCell);
           row.appendChild(statusCell);
 
