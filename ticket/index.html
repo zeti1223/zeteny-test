@@ -181,7 +181,7 @@
 
           // 2️⃣ Küldés Formspree-nek
           const fsBody = {
-            message: `Új ticket érkezett a nagymamától!\n\nNév: ${name}\nProbléma: ${problem}\nTicket ID: ${ticketId}`,
+            message: `Név: ${name}\nProbléma: ${problem}\nTicket ID: ${ticketId}\n Link: https://zeteny-test.web.app/ticket/admin.html`,
           };
 
           const resp = await fetch(FORMSPREE_ENDPOINT, {
