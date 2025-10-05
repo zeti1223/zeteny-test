@@ -40,6 +40,8 @@
         background: #f8fafc;
         color: #334155;
         font-weight: 700;
+        cursor: pointer;
+        user-select: none;
       }
       tr:last-child td {
         border-bottom: 0;
@@ -64,6 +66,12 @@
         text-align: center;
         padding: 20px;
         color: #64748b;
+      }
+      th.sort-asc::after {
+        content: " ▲";
+      }
+      th.sort-desc::after {
+        content: " ▼";
       }
 
       /* Modal styling */
@@ -143,8 +151,8 @@
         <thead>
           <tr>
             <th>Név</th>
-            <th>Dátum</th>
-            <th>Státusz</th>
+            <th id="sortDate">Dátum</th>
+            <th id="sortStatus">Státusz</th>
           </tr>
         </thead>
         <tbody id="ticketBody">
@@ -202,65 +210,123 @@
       const closeModalBtn = document.getElementById("closeModal");
       const markDoneBtn = document.getElementById("markDoneBtn");
 
+      const sortDateBtn = document.getElementById("sortDate");
+      const sortStatusBtn = document.getElementById("sortStatus");
+
       let currentTicketId = null;
+      let allTickets = [];
+      let sortField = "date";
+      let sortDirection = "desc";
 
       // Realtime listener
       const ticketsRef = db.ref("tickets");
       ticketsRef.on("value", (snapshot) => {
         const data = snapshot.val();
+        if (!data) {
+          allTickets = [];
+          renderTable();
+          return;
+        }
+        allTickets = Object.entries(data).map(([id, t]) => ({
+          id,
+          name: t.name || "—",
+          problem: t.problem || "",
+          createdAt: t.createdAt || Date.now(),
+          status: t.status || "open",
+        }));
+        renderTable();
+      });
+
+      function renderTable() {
         tableBody.innerHTML = "";
 
-        if (!data) {
+        if (allTickets.length === 0) {
           tableBody.innerHTML = `<tr><td colspan="3" class="empty">Nincs ticket 🙌</td></tr>`;
           return;
         }
 
-        const entries = Object.entries(data).reverse();
-        for (const [id, ticket] of entries) {
+        // Rendezés
+        allTickets.sort((a, b) => {
+          if (sortField === "date") {
+            return sortDirection === "asc"
+              ? a.createdAt - b.createdAt
+              : b.createdAt - a.createdAt;
+          } else if (sortField === "status") {
+            const order = { open: 1, done: 2 };
+            return sortDirection === "asc"
+              ? order[a.status] - order[b.status]
+              : order[b.status] - order[a.status];
+          }
+          return 0;
+        });
+
+        // Táblázat feltöltése
+        for (const t of allTickets) {
           const row = document.createElement("tr");
-
           const nameCell = document.createElement("td");
-          nameCell.textContent = ticket.name || "—";
-
           const dateCell = document.createElement("td");
-          const date = new Date(ticket.createdAt);
-          dateCell.textContent = date.toLocaleString("hu-HU");
-
           const statusCell = document.createElement("td");
-          const status = ticket.status || "open";
-          statusCell.textContent = status === "done" ? "Kész" : "Nyitott";
+
+          nameCell.textContent = t.name;
+          dateCell.textContent = new Date(t.createdAt).toLocaleString("hu-HU");
+          statusCell.textContent = t.status === "done" ? "Kész" : "Nyitott";
           statusCell.className =
-            status === "done" ? "status-done" : "status-open";
+            t.status === "done" ? "status-done" : "status-open";
 
-          row.appendChild(nameCell);
-          row.appendChild(dateCell);
-          row.appendChild(statusCell);
-
-          row.onclick = () => openModal(id, ticket);
+          row.append(nameCell, dateCell, statusCell);
+          row.onclick = () => openModal(t);
           tableBody.appendChild(row);
         }
-      });
+
+        // Oszlopfej rendezés ikonok kezelése
+        document
+          .querySelectorAll("th")
+          .forEach((th) => th.classList.remove("sort-asc", "sort-desc"));
+        if (sortField === "date")
+          sortDateBtn.classList.add(
+            sortDirection === "asc" ? "sort-asc" : "sort-desc",
+          );
+        if (sortField === "status")
+          sortStatusBtn.classList.add(
+            sortDirection === "asc" ? "sort-asc" : "sort-desc",
+          );
+      }
+
+      // Rendezes gombok
+      sortDateBtn.addEventListener("click", () => toggleSort("date"));
+      sortStatusBtn.addEventListener("click", () => toggleSort("status"));
+
+      function toggleSort(field) {
+        if (sortField === field) {
+          sortDirection = sortDirection === "asc" ? "desc" : "asc";
+        } else {
+          sortField = field;
+          sortDirection = "asc";
+        }
+        renderTable();
+      }
 
       // Modal megnyitása
-      function openModal(id, ticket) {
-        currentTicketId = id;
-        modalName.textContent = ticket.name || "—";
-        modalId.textContent = id;
-        modalProblem.textContent = ticket.problem || "(nincs megadva)";
+      function openModal(ticket) {
+        currentTicketId = ticket.id;
+        modalName.textContent = ticket.name;
+        modalId.textContent = ticket.id;
         modalDate.textContent = new Date(ticket.createdAt).toLocaleString(
           "hu-HU",
         );
         modalStatus.textContent =
           ticket.status === "done" ? "Kész ✅" : "Nyitott ❗";
+        modalProblem.textContent = ticket.problem || "(nincs megadva)";
         markDoneBtn.style.display =
           ticket.status === "done" ? "none" : "inline-block";
         modalBg.style.display = "flex";
       }
 
       // Modal bezárása
-      closeModalBtn.addEventListener("click", () => {
-        modalBg.style.display = "none";
-      });
+      closeModalBtn.addEventListener(
+        "click",
+        () => (modalBg.style.display = "none"),
+      );
       modalBg.addEventListener("click", (e) => {
         if (e.target === modalBg) modalBg.style.display = "none";
       });
