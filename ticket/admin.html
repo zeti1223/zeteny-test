@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="hu">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Ticket Admin</title>
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          Arial;
+        background: #f1f5f9;
+        margin: 0;
+        padding: 20px;
+      }
+      h1 {
+        text-align: center;
+        color: #1e293b;
+        margin-bottom: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+      }
+      th,
+      td {
+        padding: 12px 16px;
+        border-bottom: 1px solid #e5e7eb;
+        text-align: left;
+        font-size: 15px;
+      }
+      th {
+        background: #f8fafc;
+        color: #334155;
+        font-weight: 700;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      .status-open {
+        color: #b91c1c;
+        font-weight: 700;
+      }
+      .status-done {
+        color: #15803d;
+        font-weight: 700;
+      }
+      button {
+        background: #3b82f6;
+        color: white;
+        border: 0;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      button:hover {
+        background: #2563eb;
+      }
+      .container {
+        max-width: 900px;
+        margin: auto;
+      }
+      .empty {
+        text-align: center;
+        padding: 20px;
+        color: #64748b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎟️ Ticket Admin Panel</h1>
+      <table id="ticketTable">
+        <thead>
+          <tr>
+            <th>Név</th>
+            <th>Probléma</th>
+            <th>Dátum</th>
+            <th>Státusz</th>
+            <th>Művelet</th>
+          </tr>
+        </thead>
+        <tbody id="ticketBody">
+          <tr>
+            <td colspan="5" class="empty">Betöltés...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Firebase (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyDn1OTmejSt3k705cFoNFVaN0lX-t0sxlo",
+        authDomain: "zeteny-test.firebaseapp.com",
+        databaseURL:
+          "https://zeteny-test-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "zeteny-test",
+        storageBucket: "zeteny-test.firebasestorage.app",
+        messagingSenderId: "1048302485508",
+        appId: "1:1048302485508:web:15f9180a68b97faee97551",
+        measurementId: "G-E3H84LKM0D",
+      };
+
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+
+      const tableBody = document.getElementById("ticketBody");
+
+      // Realtime listener: ha bármi változik, újra megjeleníti
+      const ticketsRef = db.ref("tickets");
+      ticketsRef.on("value", (snapshot) => {
+        const data = snapshot.val();
+        tableBody.innerHTML = ""; // ürítjük a táblát
+
+        if (!data) {
+          tableBody.innerHTML = `<tr><td colspan="5" class="empty">Nincs még egyetlen ticket sem 😎</td></tr>`;
+          return;
+        }
+
+        const entries = Object.entries(data).reverse(); // újabb előre
+        for (const [id, ticket] of entries) {
+          const row = document.createElement("tr");
+
+          const nameCell = document.createElement("td");
+          nameCell.textContent = ticket.name || "—";
+
+          const problemCell = document.createElement("td");
+          problemCell.textContent = ticket.problem || "—";
+
+          const dateCell = document.createElement("td");
+          const date = new Date(ticket.createdAt);
+          dateCell.textContent = date.toLocaleString("hu-HU");
+
+          const statusCell = document.createElement("td");
+          const status = ticket.status || "open";
+          statusCell.textContent = status === "done" ? "Kész" : "Nyitott";
+          statusCell.className =
+            status === "done" ? "status-done" : "status-open";
+
+          const actionCell = document.createElement("td");
+          if (status === "open") {
+            const doneBtn = document.createElement("button");
+            doneBtn.textContent = "✅ Kész";
+            doneBtn.onclick = () => markDone(id);
+            actionCell.appendChild(doneBtn);
+          } else {
+            actionCell.textContent = "✔️";
+          }
+
+          row.appendChild(nameCell);
+          row.appendChild(problemCell);
+          row.appendChild(dateCell);
+          row.appendChild(statusCell);
+          row.appendChild(actionCell);
+
+          tableBody.appendChild(row);
+        }
+      });
+
+      // státusz frissítés
+      function markDone(id) {
+        db.ref("tickets/" + id).update({ status: "done" });
+      }
+    </script>
+  </body>
+</html>

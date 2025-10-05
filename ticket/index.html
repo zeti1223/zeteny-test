@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="hu">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Ticket</title>
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          Arial;
+        background: #f7fafc;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      .card {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+        width: 100%;
+        max-width: 480px;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: 22px;
+        color: #1f2937;
+        text-align: center;
+      }
+      label {
+        display: block;
+        margin-top: 14px;
+        font-weight: 600;
+        color: #374151;
+      }
+      input,
+      textarea {
+        width: 100%;
+        padding: 10px 12px;
+        margin-top: 6px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 15px;
+        box-sizing: border-box;
+      }
+      textarea {
+        min-height: 140px;
+        resize: vertical;
+      }
+      button {
+        margin-top: 18px;
+        width: 100%;
+        padding: 10px;
+        border: 0;
+        border-radius: 8px;
+        font-weight: 700;
+        background: #ef4444;
+        color: white;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background 0.2s ease-in-out;
+      }
+      button:hover {
+        background: #dc2626;
+      }
+      .muted {
+        color: #6b7280;
+        font-size: 13px;
+        margin-top: 8px;
+        text-align: center;
+      }
+      .success {
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 8px;
+        background: #ecfccb;
+        color: #166534;
+        font-weight: 600;
+        text-align: center;
+      }
+      .error {
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 8px;
+        background: #fee2e2;
+        color: #7f1d1d;
+        font-weight: 600;
+        text-align: center;
+      }
+      .ticket-id {
+        font-family: monospace;
+        background: #f3f4f6;
+        padding: 6px 8px;
+        border-radius: 6px;
+        display: inline-block;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Ticket</h1>
+
+      <form id="ticketForm">
+        <label for="name">Név</label>
+        <input id="name" name="name" type="text" required />
+
+        <label for="problem">Mi a baj a géppel?</label>
+        <textarea id="problem" name="problem" required></textarea>
+
+        <button type="submit">Ticket küldése</button>
+      </form>
+
+      <div id="messageArea" aria-live="polite"></div>
+    </div>
+
+    <!-- Firebase (compat) CDN -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+    <script>
+      // Firebase config
+      const firebaseConfig = {
+        apiKey: "AIzaSyDn1OTmejSt3k705cFoNFVaN0lX-t0sxlo",
+        authDomain: "zeteny-test.firebaseapp.com",
+        databaseURL:
+          "https://zeteny-test-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "zeteny-test",
+        storageBucket: "zeteny-test.firebasestorage.app",
+        messagingSenderId: "1048302485508",
+        appId: "1:1048302485508:web:15f9180a68b97faee97551",
+        measurementId: "G-E3H84LKM0D",
+      };
+
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+
+      const FORMSPREE_ENDPOINT = "https://formspree.io/f/mnngzdgw";
+
+      const form = document.getElementById("ticketForm");
+      const messageArea = document.getElementById("messageArea");
+
+      function showSuccess(text, ticketId) {
+        messageArea.innerHTML = `<div class="success">${text}${ticketId ? '<div class="ticket-id">ID: ' + ticketId + "</div>" : ""}</div>`;
+      }
+      function showError(text) {
+        messageArea.innerHTML = `<div class="error">${text}</div>`;
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        messageArea.innerHTML = "";
+
+        const name = document.getElementById("name").value.trim();
+        const problem = document.getElementById("problem").value.trim();
+
+        if (!name || !problem) {
+          showError("Kérlek töltsd ki mindkét mezőt.");
+          return;
+        }
+
+        const ticketObj = {
+          name,
+          problem,
+          createdAt: new Date().toISOString(),
+        };
+
+        try {
+          // 1️⃣ Mentés Firebase-be
+          const ticketsRef = database.ref("tickets");
+          const newTicketRef = await ticketsRef.push(ticketObj);
+          const ticketId = newTicketRef.key;
+
+          // 2️⃣ Küldés Formspree-nek
+          const fsBody = {
+            message: `Új ticket érkezett a nagymamától!\n\nNév: ${name}\nProbléma: ${problem}\nTicket ID: ${ticketId}`,
+          };
+
+          const resp = await fetch(FORMSPREE_ENDPOINT, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify(fsBody),
+          });
+
+          if (!resp.ok) {
+            showSuccess(
+              "A ticket elmentve, de az email nem ment el. Ellenőrizd a Formspree-t.",
+              ticketId,
+            );
+            return;
+          }
+
+          showSuccess("✅ Ticket sikeresen elküldve!", ticketId);
+          form.reset();
+        } catch (err) {
+          console.error(err);
+          showError("Hoppá — valami elromlott. Próbáld meg később újra.");
+        }
+      });
+    </script>
+  </body>
+</html>
