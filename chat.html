@@ -188,6 +188,44 @@
             background-color: var(--bg-color);
             transition: background-color 0.3s;
         }
+        /* Reply preview shown above the input when replying to a message */
+        .reply-preview {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--card-bg-color);
+            color: var(--info-text-color);
+            font-size: 0.9rem;
+        }
+        .reply-preview .reply-cancel {
+            margin-left: auto;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--secondary-btn-text-color);
+        }
+        .reply-quote {
+            font-size: 0.85rem;
+            color: var(--info-text-color);
+            opacity: 0.95;
+            padding: 6px 10px;
+            border-radius: 12px;
+            margin-bottom: 6px;
+            background-color: rgba(0,0,0,0.03);
+            max-width: 70%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .reply-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            margin-left: 8px;
+        }
         .message {
             margin-bottom: 1rem;
             display: flex;
@@ -297,7 +335,13 @@
                 <button id="copy-pin-btn" class="icon-btn" title="PIN másolása">📋</button>
             </div>
         </div>
+        <div id="typing-indicator" style="padding:0 1rem; min-height:18px; color:var(--info-text-color); font-size:0.9rem;"></div>
         <div id="messages"></div>
+        <!-- Reply preview will be inserted here when replying -->
+        <div id="reply-preview" class="reply-preview hidden" aria-hidden="true">
+            <div id="reply-preview-text"></div>
+            <button id="reply-cancel" class="reply-cancel" title="Válasz megszakítása">✖</button>
+        </div>
         <form id="message-form">
             <input type="text" id="message-input" placeholder="Írj üzenetet..." autocomplete="off" />
             <button type="submit" id="send-btn" class="icon-btn">➤</button>
@@ -345,6 +389,10 @@
     let currentPin = null;
     let currentUsername = null;
     let messagesRef = null;
+    let typingRef = null;
+    let typingListenRef = null;
+    let typingTimeout = null;
+    let currentReply = null; // { username, text }
 
     // --- Téma Kezelés ---
     function applyTheme(theme) {
@@ -407,6 +455,14 @@
         }
     });
 
+    // Válasz megszakítása
+    const replyPreview = document.getElementById('reply-preview');
+    const replyPreviewText = document.getElementById('reply-preview-text');
+    const replyCancelBtn = document.getElementById('reply-cancel');
+    replyCancelBtn.addEventListener('click', () => {
+        clearReply();
+    });
+
     // Új szoba létrehozása
     newRoomBtn.addEventListener('click', () => {
         currentPin = Math.floor(100000 + Math.random() * 900000).toString();
@@ -443,12 +499,18 @@
         e.preventDefault();
         const text = messageInput.value.trim();
         if (text && messagesRef) {
-            messagesRef.push({
+            const payload = {
                 username: currentUsername,
                 text: text,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
+            };
+            if (currentReply) {
+                payload.replyToUsername = currentReply.username;
+                payload.replyToText = currentReply.text;
+            }
+            messagesRef.push(payload);
             messageInput.value = '';
+            clearReply();
         }
     });
 
@@ -480,29 +542,107 @@
             const message = snapshot.val();
             displayMessage(message);
         });
+
+        // Typing presence refs
+        if (typingListenRef) {
+            typingListenRef.off();
+        }
+        typingListenRef = database.ref(`chats/${currentPin}/typing`);
+        typingListenRef.on('value', (snap) => {
+            const val = snap.val() || {};
+            const otherTyping = Object.keys(val).filter(u => u !== currentUsername && val[u]);
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (otherTyping.length) {
+                typingIndicator.textContent = `${otherTyping[0]} gépel...`;
+            } else {
+                typingIndicator.textContent = '';
+            }
+        });
     }
+
+    // Typing indicator: update presence when the user types
+    messageInput.addEventListener('input', () => {
+        if (!currentPin || !currentUsername) return;
+        if (!typingRef) {
+            typingRef = database.ref(`chats/${currentPin}/typing/${currentUsername}`);
+            typingRef.onDisconnect().set(false);
+        }
+
+        const val = messageInput.value.trim();
+        if (val.length) {
+            typingRef.set(true);
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                typingRef.set(false);
+            }, 2000);
+        } else {
+            typingRef.set(false);
+        }
+    });
+
+    // Clear typing presence on unload
+    window.addEventListener('beforeunload', () => {
+        if (currentPin && currentUsername) {
+            const tRef = database.ref(`chats/${currentPin}/typing/${currentUsername}`);
+            tRef.set(false);
+        }
+    });
 
     function displayMessage(message) {
         const isOwn = message.username === currentUsername;
         
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isOwn ? 'own' : 'other'}`;
-        
+        // If message is a reply to another message, show quoted snippet
+        if (message.replyToUsername || message.replyToText) {
+            const replyQuote = document.createElement('div');
+            replyQuote.className = 'reply-quote';
+            const who = message.replyToUsername ? `${message.replyToUsername}: ` : '';
+            const txt = message.replyToText || '';
+            replyQuote.textContent = `${who}${txt}`;
+            messageDiv.appendChild(replyQuote);
+        }
+
         const bubble = document.createElement('div');
         bubble.className = 'message-bubble';
         bubble.textContent = message.text;
-        
+
         const info = document.createElement('div');
         info.className = 'message-info';
         const date = new Date(message.timestamp);
         const timeString = date.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
         info.textContent = `${isOwn ? 'Te' : message.username} - ${timeString}`;
-        
+
+        // Reply button
+        const replyBtn = document.createElement('button');
+        replyBtn.className = 'reply-btn';
+        replyBtn.title = 'Válasz erre';
+        replyBtn.textContent = '↩️';
+        replyBtn.addEventListener('click', () => {
+            setReply(message.username, message.text);
+        });
+        info.appendChild(replyBtn);
+
         messageDiv.appendChild(bubble);
         messageDiv.appendChild(info);
         
         messagesContainer.appendChild(messageDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function setReply(username, text) {
+        currentReply = { username, text };
+        replyPreviewText.textContent = `Válasz: ${username} — ${text}`;
+        replyPreview.classList.remove('hidden');
+        replyPreview.setAttribute('aria-hidden', 'false');
+        messageInput.focus();
+    }
+
+    function clearReply() {
+        currentReply = null;
+        replyPreviewText.textContent = '';
+        replyPreview.classList.add('hidden');
+        replyPreview.setAttribute('aria-hidden', 'true');
     }
 
 </script>
