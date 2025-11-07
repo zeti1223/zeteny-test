@@ -302,6 +302,52 @@
             width: 100%;
             max-width: 360px;
         }
+
+        /* Messenger-like Typing Indicator Styles */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            background-color: var(--other-message-bg-color); /* Use a similar background to other messages */
+            border-radius: 18px;
+            padding: 8px 15px;
+            margin: 0 1rem 1rem 1rem; /* Adjust margin to fit chat bubbles */
+            width: fit-content;
+            max-width: 70%;
+            box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+        }
+
+        .typing-indicator.hidden {
+            display: none !important;
+        }
+
+        .typing-indicator span {
+            color: var(--other-message-text-color);
+            font-size: 0.9rem;
+            margin-right: 5px;
+        }
+
+        .typing-indicator .dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--info-text-color);
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator .dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator .dot:nth-child(2) { animation-delay: -0.16s; }
+        .typing-indicator .dot:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-8px);
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -335,8 +381,14 @@
                 <button id="copy-pin-btn" class="icon-btn" title="PIN másolása">📋</button>
             </div>
         </div>
-        <div id="typing-indicator" style="padding:0 1rem; min-height:18px; color:var(--info-text-color); font-size:0.9rem;"></div>
         <div id="messages"></div>
+        <!-- Typing indicator will be inserted here -->
+        <div id="typing-indicator" class="typing-indicator hidden">
+            <span></span>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
         <!-- Reply preview will be inserted here when replying -->
         <div id="reply-preview" class="reply-preview hidden" aria-hidden="true">
             <div id="reply-preview-text"></div>
@@ -552,10 +604,13 @@
             const val = snap.val() || {};
             const otherTyping = Object.keys(val).filter(u => u !== currentUsername && val[u]);
             const typingIndicator = document.getElementById('typing-indicator');
+            const typingTextSpan = typingIndicator.querySelector('span');
             if (otherTyping.length) {
-                typingIndicator.textContent = `${otherTyping[0]} gépel...`;
+                typingTextSpan.textContent = `${otherTyping[0]} gépel`; // "..." will be handled by dots
+                typingIndicator.classList.remove('hidden');
             } else {
-                typingIndicator.textContent = '';
+                typingTextSpan.textContent = '';
+                typingIndicator.classList.add('hidden');
             }
         });
     }
