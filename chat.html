@@ -4,6 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PIN Kódos Chat</title>
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1877f2" />
+    <meta name="description" content="PIN kóddal védett chat alkalmazás" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Chat" />
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <!-- App Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
@@ -181,6 +200,12 @@
             padding: 0.5rem 1rem;
             border-radius: 6px;
             transition: background-color 0.3s, color 0.3s;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        #pin-display:hover {
+            background-color: var(--secondary-btn-hover-bg-color);
         }
         #messages {
             flex-grow: 1;
@@ -188,6 +213,8 @@
             overflow-y: auto;
             background-color: var(--bg-color);
             transition: background-color 0.3s;
+            /* Mobile: számoljunk a billentyűzettel */
+            padding-bottom: env(safe-area-inset-bottom, 0);
         }
         /* Reply preview shown above the input when replying to a message */
         .reply-preview {
@@ -231,6 +258,43 @@
             margin-bottom: 1rem;
             display: flex;
             flex-direction: column;
+            position: relative;
+            /* Swipe támogatás mobilon */
+            touch-action: pan-y;
+        }
+        
+        /* Swipe feedback animáció */
+        .message.swiping {
+            transition: transform 0.1s ease-out;
+        }
+        
+        .swipe-indicator {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: var(--primary-color);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+            z-index: 10;
+        }
+        
+        /* Saját üzeneteknél balra, mások üzeneteinél jobbra */
+        .message.own .swipe-indicator {
+            left: 10px;
+        }
+        
+        .message.other .swipe-indicator {
+            right: 10px;
+        }
+        
+        .message.swiping .swipe-indicator {
+            opacity: 1;
         }
         .message-bubble {
             max-width: 70%;
@@ -265,6 +329,8 @@
             border-top: 1px solid var(--border-color);
             background-color: var(--card-bg-color);
             transition: background-color 0.3s, border-color 0.3s;
+            /* Mobile: számoljunk a billentyűzettel */
+            padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0));
         }
         #message-input {
             flex-grow: 1;
@@ -379,8 +445,7 @@
                 <button id="logout-btn" class="icon-btn" title="Kijelentkezés">🚪</button>
                 <button id="theme-toggle-btn" class="icon-btn" title="Téma váltás">🌙</button>
                 <button id="notification-btn" class="icon-btn" title="Értesítések bekapcsolása">🔕</button>
-                <div id="pin-display">PIN: ------</div>
-                <button id="copy-pin-btn" class="icon-btn" title="PIN másolása">📋</button>
+                <div id="pin-display" title="Kattints a PIN másolásához">PIN: ------</div>
             </div>
         </div>
         <div id="messages"></div>
@@ -437,7 +502,6 @@
     const messageInput = document.getElementById('message-input');
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
     const notificationBtn = document.getElementById('notification-btn');
-    const copyPinBtn = document.getElementById('copy-pin-btn');
     const logoutBtn = document.getElementById('logout-btn');
 
     // Alkalmazás állapota
@@ -544,8 +608,8 @@
 
     // --- Munkamenet Kezelés ---
     document.addEventListener('DOMContentLoaded', () => {
-        // Téma betöltése
-        const savedTheme = localStorage.getItem('theme') || 'light';
+        // Téma betöltése (default: dark)
+        const savedTheme = localStorage.getItem('theme') || 'dark';
         applyTheme(savedTheme);
 
         initNotifications();
@@ -572,18 +636,74 @@
 
     // --- Eseménykezelők ---
 
-    // PIN másolása
-    copyPinBtn.addEventListener('click', () => {
-        if (currentPin) {
-            navigator.clipboard.writeText(currentPin).then(() => {
-                copyPinBtn.textContent = '✅';
+    // PIN másolása - PIN-re kattintás (mobilon is működik)
+    pinDisplay.addEventListener('click', async () => {
+        if (!currentPin) return;
+        
+        const originalText = pinDisplay.textContent;
+        
+        // Modern Clipboard API (ha elérhető)
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+                await navigator.clipboard.writeText(currentPin);
+                pinDisplay.textContent = '✅ Másolva!';
                 setTimeout(() => {
-                    copyPinBtn.textContent = '📋';
+                    pinDisplay.textContent = originalText;
                 }, 2000);
-            }).catch(err => {
-                console.error('Hiba a PIN másolása közben: ', err);
-                alert('A vágólapra másolás sikertelen.');
-            });
+                return;
+            } catch (err) {
+                console.warn('Clipboard API hiba, fallback használata:', err);
+            }
+        }
+        
+        // Fallback módszer mobilon (régebbi böngészők, iOS Safari)
+        try {
+            // Létrehozunk egy ideiglenes textarea elemet
+            const textArea = document.createElement('textarea');
+            textArea.value = currentPin;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            textArea.setAttribute('readonly', '');
+            document.body.appendChild(textArea);
+            
+            // Kiválasztjuk és másoljuk
+            textArea.select();
+            textArea.setSelectionRange(0, currentPin.length);
+            
+            // iOS Safari támogatás
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            if (successful) {
+                pinDisplay.textContent = '✅ Másolva!';
+                setTimeout(() => {
+                    pinDisplay.textContent = originalText;
+                }, 2000);
+            } else {
+                throw new Error('execCommand copy sikertelen');
+            }
+        } catch (err) {
+            console.error('PIN másolás hiba:', err);
+            // Ha mindkét módszer sikertelen, mutassuk a PIN-t egy alert-ben
+            const userConfirmed = confirm(`PIN kód: ${currentPin}\n\nNem sikerült automatikusan másolni. Kattints az OK-ra, majd másold ki kézzel.`);
+            if (userConfirmed) {
+                // Próbáljuk meg újra a clipboard API-t
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    try {
+                        await navigator.clipboard.writeText(currentPin);
+                        pinDisplay.textContent = '✅ Másolva!';
+                        setTimeout(() => {
+                            pinDisplay.textContent = originalText;
+                        }, 2000);
+                    } catch (e) {
+                        pinDisplay.textContent = '📋 Kattints a PIN-re';
+                        setTimeout(() => {
+                            pinDisplay.textContent = originalText;
+                        }, 3000);
+                    }
+                }
+            }
         }
     });
 
@@ -662,6 +782,96 @@
         
         // Üzenetek betöltése
         loadMessages();
+        
+        // Billentyűzet kezelés mobilon
+        if (isMobileDevice()) {
+            setupKeyboardHandling();
+        }
+    }
+    
+    // Virtuális billentyűzet kezelése mobilon
+    function setupKeyboardHandling() {
+        const calculateMessagesHeight = () => {
+            const header = chatScreen.querySelector('.chat-header');
+            const headerHeight = header ? header.offsetHeight : 0;
+            const formHeight = messageForm.offsetHeight;
+            const replyHeight = replyPreview.classList.contains('hidden') ? 0 : replyPreview.offsetHeight;
+            return { headerHeight, formHeight, replyHeight };
+        };
+        
+        // Visual Viewport API használata (ha elérhető)
+        if (window.visualViewport) {
+            const handleViewportChange = () => {
+                const viewport = window.visualViewport;
+                const viewportHeight = viewport.height;
+                const windowHeight = window.innerHeight;
+                const keyboardHeight = windowHeight - viewportHeight;
+                
+                if (keyboardHeight > 150) {
+                    // Billentyűzet látható - állítsuk be a messages container magasságát
+                    const { headerHeight, formHeight, replyHeight } = calculateMessagesHeight();
+                    messagesContainer.style.height = `${viewportHeight - headerHeight - formHeight - replyHeight}px`;
+                    messagesContainer.style.maxHeight = 'none';
+                    // Scroll az aljára
+                    setTimeout(() => {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }, 100);
+                } else {
+                    // Billentyűzet eltűnt - reset
+                    messagesContainer.style.height = '';
+                    messagesContainer.style.maxHeight = '';
+                }
+            };
+            
+            window.visualViewport.addEventListener('resize', handleViewportChange);
+            window.visualViewport.addEventListener('scroll', handleViewportChange);
+        } else {
+            // Fallback: window resize esemény
+            let lastHeight = window.innerHeight;
+            window.addEventListener('resize', () => {
+                const currentHeight = window.innerHeight;
+                const heightDiff = lastHeight - currentHeight;
+                
+                if (heightDiff > 150) {
+                    // Billentyűzet megjelenés
+                    const { headerHeight, formHeight, replyHeight } = calculateMessagesHeight();
+                    messagesContainer.style.height = `${currentHeight - headerHeight - formHeight - replyHeight}px`;
+                    messagesContainer.style.maxHeight = 'none';
+                    setTimeout(() => {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }, 100);
+                } else if (heightDiff < -150) {
+                    // Billentyűzet eltűnés
+                    messagesContainer.style.height = '';
+                    messagesContainer.style.maxHeight = '';
+                }
+                
+                lastHeight = currentHeight;
+            });
+        }
+        
+        // Input focus esemény - scroll az aljára
+        messageInput.addEventListener('focus', () => {
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 300);
+        });
+        
+        // Reply preview megjelenésekor is frissítsük a magasságot
+        const observer = new MutationObserver(() => {
+            if (window.visualViewport) {
+                const viewport = window.visualViewport;
+                const keyboardHeight = window.innerHeight - viewport.height;
+                if (keyboardHeight > 150) {
+                    const { headerHeight, formHeight, replyHeight } = calculateMessagesHeight();
+                    messagesContainer.style.height = `${viewport.height - headerHeight - formHeight - replyHeight}px`;
+                    setTimeout(() => {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }, 100);
+                }
+            }
+        });
+        observer.observe(replyPreview, { attributes: true, attributeFilter: ['class'] });
     }
 
     function loadMessages() {
@@ -763,6 +973,15 @@
         
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isOwn ? 'own' : 'other'}`;
+        
+        // Swipe indicator (csak mobilon, minden üzenetre)
+        if (isMobileDevice()) {
+            const swipeIndicator = document.createElement('div');
+            swipeIndicator.className = 'swipe-indicator';
+            swipeIndicator.textContent = '↩️ Válasz';
+            messageDiv.appendChild(swipeIndicator);
+        }
+        
         // If message is a reply to another message, show quoted snippet
         if (message.replyToUsername || message.replyToText) {
             const replyQuote = document.createElement('div');
@@ -796,10 +1015,82 @@
         messageDiv.appendChild(bubble);
         messageDiv.appendChild(info);
         
+        // Swipe-to-reply eseménykezelő (csak mobilon, minden üzenetre)
+        if (isMobileDevice()) {
+            initSwipeToReply(messageDiv, message, isOwn);
+        }
+        
         messagesContainer.appendChild(messageDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
         maybeShowNotification(message);
+    }
+    
+    // Swipe-to-reply funkció mobilon
+    function initSwipeToReply(messageElement, message, isOwn) {
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+        let isSwiping = false;
+        const SWIPE_THRESHOLD = 50; // Minimum swipe távolság
+        const SWIPE_MAX = 80; // Maximum eltolás
+        
+        messageElement.addEventListener('touchstart', (e) => {
+            if (e.touches.length !== 1) return;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            isSwiping = false;
+        }, { passive: true });
+        
+        messageElement.addEventListener('touchmove', (e) => {
+            if (e.touches.length !== 1) return;
+            currentX = e.touches[0].clientX;
+            const deltaX = currentX - startX;
+            const deltaY = Math.abs(e.touches[0].clientY - startY);
+            
+            // Csak vízszintes swipe, ha elég nagy a vízszintes eltolás és kicsi a függőleges
+            if (Math.abs(deltaX) > 10 && deltaY < Math.abs(deltaX) * 0.5) {
+                isSwiping = true;
+                
+                // Saját üzenetekre: balra swipe (negatív deltaX)
+                // Mások üzeneteire: jobbra swipe (pozitív deltaX)
+                if (isOwn && deltaX < 0) {
+                    const swipeAmount = Math.min(Math.abs(deltaX), SWIPE_MAX);
+                    messageElement.style.transform = `translateX(-${swipeAmount}px)`;
+                    messageElement.classList.add('swiping');
+                } else if (!isOwn && deltaX > 0) {
+                    const swipeAmount = Math.min(deltaX, SWIPE_MAX);
+                    messageElement.style.transform = `translateX(${swipeAmount}px)`;
+                    messageElement.classList.add('swiping');
+                }
+            }
+        }, { passive: true });
+        
+        messageElement.addEventListener('touchend', (e) => {
+            const deltaX = currentX - startX;
+            
+            // Saját üzenetekre: balra swipe aktiválja a választ
+            // Mások üzeneteire: jobbra swipe aktiválja a választ
+            const swipeTriggered = isOwn 
+                ? (isSwiping && deltaX < -SWIPE_THRESHOLD)
+                : (isSwiping && deltaX > SWIPE_THRESHOLD);
+            
+            if (swipeTriggered) {
+                // Swipe sikeres - válasz beállítása
+                setReply(message.username, message.text);
+                // Haptic feedback (ha elérhető)
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(50);
+                }
+            }
+            
+            // Reset
+            messageElement.style.transform = '';
+            messageElement.classList.remove('swiping');
+            isSwiping = false;
+            startX = 0;
+            currentX = 0;
+        }, { passive: true });
     }
 
     function setReply(username, text) {
@@ -816,6 +1107,57 @@
         replyPreview.classList.add('hidden');
         replyPreview.setAttribute('aria-hidden', 'true');
     }
+
+    // --- PWA Service Worker Regisztráció ---
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then((registration) => {
+                    console.log('Service Worker regisztrálva:', registration.scope);
+                })
+                .catch((error) => {
+                    console.log('Service Worker regisztráció hiba:', error);
+                });
+        });
+    }
+
+    // --- PWA Install Prompt Kezelés ---
+    let deferredPrompt;
+    const installButton = document.createElement('button');
+    installButton.textContent = '📱 Telepítés';
+    installButton.className = 'btn btn-secondary';
+    installButton.style.display = 'none';
+    installButton.style.marginTop = '1rem';
+    installButton.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log('Telepítés válasz:', outcome);
+            deferredPrompt = null;
+            installButton.style.display = 'none';
+        }
+    });
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        // Csak mobilon mutatjuk az install gombot
+        if (isMobileDevice()) {
+            const pinScreen = document.getElementById('pin-screen');
+            if (pinScreen && !pinScreen.classList.contains('hidden')) {
+                pinScreen.appendChild(installButton);
+                installButton.style.display = 'block';
+            }
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        console.log('PWA telepítve');
+        deferredPrompt = null;
+        if (installButton.parentNode) {
+            installButton.parentNode.removeChild(installButton);
+        }
+    });
 
 </script>
 </body>
