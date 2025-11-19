@@ -1,6 +1,11 @@
 {
+  "scripts": {
+    "generate-icons": "echo 'Használd a generate-icons-simple.html fájlt böngészőben az ikonok generálásához'",
+    "predeploy": "echo 'Ikonok generálása: nyisd meg a generate-icons-simple.html fájlt böngészőben'"
+  },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.11",
+    "express": "^5.1.0",
     "prettier": "^3.6.2",
     "tailwindcss": "^4.1.11"
   }
