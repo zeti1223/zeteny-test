@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ikonok Automatikus Generálása</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        button {
+            background: #1877f2;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #166fe5;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 Chat Ikonok Automatikus Generálása</h1>
+    <p>Kattints a gombra, és az összes ikon automatikusan letöltődik!</p>
+    
+    <button onclick="generateAllIcons()">📥 Összes Ikon Generálása</button>
+    
+    <div id="status" class="status" style="display: none;"></div>
+
+    <script>
+        function drawChatIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            const scale = size / 512;
+            
+            // Háttér
+            ctx.fillStyle = '#1877f2';
+            const cornerRadius = 80 * scale;
+            ctx.beginPath();
+            ctx.moveTo(cornerRadius, 0);
+            ctx.lineTo(size - cornerRadius, 0);
+            ctx.quadraticCurveTo(size, 0, size, cornerRadius);
+            ctx.lineTo(size, size - cornerRadius);
+            ctx.quadraticCurveTo(size, size, size - cornerRadius, size);
+            ctx.lineTo(cornerRadius, size);
+            ctx.quadraticCurveTo(0, size, 0, size - cornerRadius);
+            ctx.lineTo(0, cornerRadius);
+            ctx.quadraticCurveTo(0, 0, cornerRadius, 0);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Chat buborékok
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.beginPath();
+            ctx.ellipse(180 * scale, 200 * scale, 80 * scale, 70 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.beginPath();
+            ctx.ellipse(340 * scale, 180 * scale, 70 * scale, 65 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(260 * scale, 280 * scale, 90 * scale, 75 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.beginPath();
+            ctx.ellipse(160 * scale, 350 * scale, 60 * scale, 55 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Vonalak
+            ctx.strokeStyle = '#1877f2';
+            ctx.lineCap = 'round';
+            
+            ctx.lineWidth = 8 * scale;
+            ctx.beginPath();
+            ctx.moveTo(140 * scale, 200 * scale);
+            ctx.lineTo(220 * scale, 200 * scale);
+            ctx.stroke();
+            
+            ctx.lineWidth = 6 * scale;
+            ctx.beginPath();
+            ctx.moveTo(150 * scale, 220 * scale);
+            ctx.lineTo(200 * scale, 220 * scale);
+            ctx.stroke();
+            
+            ctx.lineWidth = 8 * scale;
+            ctx.beginPath();
+            ctx.moveTo(290 * scale, 180 * scale);
+            ctx.lineTo(360 * scale, 180 * scale);
+            ctx.stroke();
+            
+            ctx.lineWidth = 6 * scale;
+            ctx.beginPath();
+            ctx.moveTo(300 * scale, 200 * scale);
+            ctx.lineTo(350 * scale, 200 * scale);
+            ctx.stroke();
+            
+            ctx.lineWidth = 10 * scale;
+            ctx.beginPath();
+            ctx.moveTo(200 * scale, 280 * scale);
+            ctx.lineTo(320 * scale, 280 * scale);
+            ctx.stroke();
+            
+            ctx.lineWidth = 8 * scale;
+            ctx.beginPath();
+            ctx.moveTo(210 * scale, 300 * scale);
+            ctx.lineTo(310 * scale, 300 * scale);
+            ctx.stroke();
+            
+            ctx.lineWidth = 6 * scale;
+            ctx.beginPath();
+            ctx.moveTo(220 * scale, 320 * scale);
+            ctx.lineTo(280 * scale, 320 * scale);
+            ctx.stroke();
+        }
+        
+        function downloadIcon(size, filename) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                drawChatIcon(canvas, size);
+                
+                canvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    resolve();
+                });
+            });
+        }
+        
+        async function generateAllIcons() {
+            const status = document.getElementById('status');
+            status.style.display = 'block';
+            status.textContent = '⏳ Ikonok generálása...';
+            
+            const icons = [
+                { size: 16, name: 'favicon-16x16.png' },
+                { size: 32, name: 'favicon-32x32.png' },
+                { size: 180, name: 'apple-touch-icon.png' },
+                { size: 192, name: 'icon-192.png' },
+                { size: 512, name: 'icon-512.png' }
+            ];
+            
+            for (let i = 0; i < icons.length; i++) {
+                status.textContent = `📥 ${icons[i].name} letöltése... (${i + 1}/${icons.length})`;
+                await downloadIcon(icons[i].size, icons[i].name);
+                await new Promise(resolve => setTimeout(resolve, 300)); // Kis késleltetés
+            }
+            
+            // Favicon.ico (32x32-ből)
+            status.textContent = '📥 favicon.ico letöltése...';
+            await downloadIcon(32, 'favicon.ico');
+            
+            status.textContent = '✅ Kész! Minden ikon letöltve.';
+            status.style.background = '#c8e6c9';
+        }
+    </script>
+</body>
+</html>
+
