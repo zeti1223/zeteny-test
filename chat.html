@@ -99,6 +99,7 @@
         }
         input[type=number] {
           -moz-appearance: textfield;
+          appearance: textfield;
         }
         .btn {
             width: 100%;
@@ -377,6 +378,7 @@
             <div class="header-right">
                 <button id="logout-btn" class="icon-btn" title="Kijelentkezés">🚪</button>
                 <button id="theme-toggle-btn" class="icon-btn" title="Téma váltás">🌙</button>
+                <button id="notification-btn" class="icon-btn" title="Értesítések bekapcsolása">🔕</button>
                 <div id="pin-display">PIN: ------</div>
                 <button id="copy-pin-btn" class="icon-btn" title="PIN másolása">📋</button>
             </div>
@@ -434,6 +436,7 @@
     const messageForm = document.getElementById('message-form');
     const messageInput = document.getElementById('message-input');
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    const notificationBtn = document.getElementById('notification-btn');
     const copyPinBtn = document.getElementById('copy-pin-btn');
     const logoutBtn = document.getElementById('logout-btn');
 
@@ -445,6 +448,7 @@
     let typingListenRef = null;
     let typingTimeout = null;
     let currentReply = null; // { username, text }
+    let notificationsEnabled = false;
 
     // --- Téma Kezelés ---
     function applyTheme(theme) {
@@ -464,11 +468,87 @@
         applyTheme(newTheme);
     });
 
+    // --- Értesítés Kezelés ---
+    function initNotifications() {
+        if (!notificationBtn) {
+            return;
+        }
+
+        if (!('Notification' in window)) {
+            notificationBtn.disabled = true;
+            notificationBtn.textContent = '🚫';
+            notificationBtn.title = 'A böngésző nem támogatja az értesítéseket.';
+            return;
+        }
+
+        const savedPref = localStorage.getItem('chatNotifications');
+        if (savedPref === 'enabled' && Notification.permission === 'granted') {
+            notificationsEnabled = true;
+        }
+        updateNotificationButton();
+
+        notificationBtn.addEventListener('click', () => {
+            if (Notification.permission === 'granted') {
+                notificationsEnabled = !notificationsEnabled;
+                localStorage.setItem('chatNotifications', notificationsEnabled ? 'enabled' : 'disabled');
+                updateNotificationButton();
+                if (notificationsEnabled) {
+                    showNotificationPreview();
+                }
+                return;
+            }
+
+            if (Notification.permission === 'denied') {
+                alert('Az értesítések le vannak tiltva a böngészőben. Engedélyezd a beállításoknál.');
+                return;
+            }
+
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    notificationsEnabled = true;
+                    localStorage.setItem('chatNotifications', 'enabled');
+                    updateNotificationButton();
+                    showNotificationPreview();
+                } else {
+                    notificationsEnabled = false;
+                    localStorage.setItem('chatNotifications', 'disabled');
+                    updateNotificationButton();
+                }
+            });
+        });
+    }
+
+    function updateNotificationButton() {
+        if (!notificationBtn || !('Notification' in window)) {
+            return;
+        }
+        notificationBtn.textContent = notificationsEnabled ? '🔔' : '🔕';
+        notificationBtn.title = notificationsEnabled ? 'Értesítések kikapcsolása' : 'Értesítések bekapcsolása';
+        notificationBtn.setAttribute('aria-pressed', notificationsEnabled ? 'true' : 'false');
+    }
+
+    function showNotificationPreview() {
+        if (!('Notification' in window) || Notification.permission !== 'granted') {
+            return;
+        }
+        try {
+            const preview = new Notification('Értesítések engedélyezve', {
+                body: 'Értesítést kapsz az új üzenetekről.',
+                tag: 'chat-notification-preview'
+            });
+            setTimeout(() => preview.close(), 4000);
+        } catch (err) {
+            console.warn('Nem sikerült előnézeti értesítést küldeni:', err);
+        }
+    }
+
     // --- Munkamenet Kezelés ---
     document.addEventListener('DOMContentLoaded', () => {
         // Téma betöltése
         const savedTheme = localStorage.getItem('theme') || 'light';
         applyTheme(savedTheme);
+
+        initNotifications();
 
         // Munkamenet betöltése
         const savedPin = localStorage.getItem('chatPin');
@@ -615,6 +695,41 @@
         });
     }
 
+    function maybeShowNotification(message) {
+        if (!('Notification' in window)) return;
+        if (!notificationsEnabled) return;
+        if (!message || message.username === currentUsername) return;
+        if (Notification.permission !== 'granted') return;
+
+        const isDesktopVisible = document.visibilityState === 'visible' && !isMobileDevice();
+        if (isDesktopVisible) {
+            return;
+        }
+
+        const bodyText = message.text.length > 100 ? `${message.text.slice(0, 97)}…` : message.text;
+        try {
+            const notification = new Notification(`Új üzenet — ${message.username}`, {
+                body: bodyText,
+                tag: `chat-${currentPin}`
+            });
+            notification.onclick = () => {
+                window.focus();
+                notification.close();
+            };
+            setTimeout(() => notification.close(), 6000);
+        } catch (err) {
+            console.warn('Nem sikerült értesítést küldeni:', err);
+        }
+
+        if ('vibrate' in navigator) {
+            navigator.vibrate([80, 40, 80]);
+        }
+    }
+
+    function isMobileDevice() {
+        return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+    }
+
     // Typing indicator: update presence when the user types
     messageInput.addEventListener('input', () => {
         if (!currentPin || !currentUsername) return;
@@ -683,6 +798,8 @@
         
         messagesContainer.appendChild(messageDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        maybeShowNotification(message);
     }
 
     function setReply(username, text) {
