@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Generated icons (these should be committed)
 # favicon-*.png
@@ -23,6 +22,4 @@ firestore-debug.log
 .DS_Store
 Thumbs.db
 
-# Archive
-Archive/
 
